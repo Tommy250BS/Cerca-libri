@@ -66,27 +66,41 @@ h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 
 /* ══════════════════════════════════════════════════════════════════
    SPLASH SCREEN — piuma che scrive "Biblioteca Aeterna" in corsivo,
-   poi apertura a tendina (come una copertina di libro) verso l'app.
+   poi la pagina viene "sfogliata": ruota in 3D attorno al bordo
+   sinistro (la costola del libro) rivelando l'app sotto, esattamente
+   come si gira una pagina reale.
    ══════════════════════════════════════════════════════════════════ */
 body.splash-lock{overflow:hidden}
 .splash{
   position:fixed;inset:0;z-index:3000;
-  background:#0b0906;
+  background:transparent; /* l'opacità sta sulla pagina, non sul contenitore:
+    così, appena la pagina supera i 90° e sparisce, l'app sotto si vede subito */
+  perspective:2000px;
 }
-.splash-panel{
-  position:absolute;top:0;bottom:0;width:50%;
+.splash-page{
+  position:absolute;inset:0;
+  transform-origin:left center;
+  transform-style:preserve-3d;
+  backface-visibility:hidden;
   background:
     radial-gradient(circle at 50% 42%,rgba(201,162,39,.07),transparent 60%),
     #0b0906;
-  transition:transform 1.05s cubic-bezier(.76,0,.24,1);
+  box-shadow:0 0 0 rgba(0,0,0,0);
+  transition:transform 1.15s cubic-bezier(.65,.05,.36,1),box-shadow 1.15s ease;
   will-change:transform;
 }
-.splash-panel-left{left:0;border-right:1px solid var(--line)}
-.splash-panel-right{right:0}
+.splash-page::after{
+  /* ombra che si addensa verso il bordo che si solleva, per dare
+     volume alla pagina mentre gira, come la luce che la lascia */
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent 55%,rgba(0,0,0,.4) 100%);
+  opacity:0;transition:opacity 1.15s ease;
+  pointer-events:none;
+}
 .splash-content{
   position:relative;z-index:2;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-  transition:opacity .5s ease,transform .5s ease;
+  transition:opacity .5s ease .25s,transform .5s ease .25s;
 }
 .splash-title-wrap{position:relative;display:inline-block}
 .splash-feather{
@@ -106,7 +120,7 @@ body.splash-lock{overflow:hidden}
 .splash-skip{
   position:absolute;right:28px;bottom:26px;z-index:2;
   color:var(--ink-3);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;
-  background:none;border:none;padding:8px;transition:color .15s;
+  background:none;border:none;padding:8px;transition:color .15s,opacity .35s ease;
 }
 .splash-skip:hover{color:var(--ink-2)}
 
@@ -137,17 +151,21 @@ body.splash-lock{overflow:hidden}
   100%{left:100%;transform:translateX(-30%) translateY(0) rotate(-10deg)}
 }
 
-/* Apertura a tendina: le due metà scorrono via, il contenuto sfuma */
-.splash.opening .splash-panel-left{transform:translateX(-100%)}
-.splash.opening .splash-panel-right{transform:translateX(100%)}
-.splash.opening .splash-content{opacity:0;transform:scale(.95)}
+/* Si sfoglia: la pagina ruota attorno alla costola sinistra e, passati
+   i 90°, sparisce (backface-visibility:hidden) rivelando l'app sotto. */
+.splash.opening .splash-page{
+  transform:rotateY(-130deg);
+  box-shadow:-50px 10px 70px rgba(0,0,0,.5);
+}
+.splash.opening .splash-page::after{opacity:1}
+.splash.opening .splash-content{opacity:0;transform:translateX(-8px)}
 .splash.opening .splash-skip{opacity:0;pointer-events:none}
 
 @media(prefers-reduced-motion:reduce){
   .splash.writing .splash-title,.splash.writing .splash-feather{animation:none}
   .splash-title{clip-path:none}
-  .splash-panel{transition:opacity .4s ease}
-  .splash.opening .splash-panel-left,.splash.opening .splash-panel-right{transform:none;opacity:0}
+  .splash-page{transition:opacity .4s ease}
+  .splash.opening .splash-page{transform:none;opacity:0;box-shadow:none}
 }
 /* ══════════════════════════════════════════════════════════════════
    NAV
@@ -645,21 +663,21 @@ body.splash-lock{overflow:hidden}
 
 <!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
 <div class="splash" id="splashScreen" aria-hidden="true">
-  <div class="splash-panel splash-panel-left"></div>
-  <div class="splash-panel splash-panel-right"></div>
-  <div class="splash-content" id="splashContent">
-    <div class="splash-title-wrap">
-      <svg class="splash-feather" id="splashFeather" width="42" height="46" viewBox="0 0 24 26" fill="none" stroke="#c9a227" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-        <line x1="16" y1="8" x2="2" y2="22"/>
-        <line x1="17.5" y1="15" x2="9" y2="15"/>
-        <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
-        <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
-      </svg>
-      <h1 class="splash-title" id="splashTitle">Biblioteca Aeterna</h1>
+  <div class="splash-page" id="splashPage">
+    <div class="splash-content" id="splashContent">
+      <div class="splash-title-wrap">
+        <svg class="splash-feather" id="splashFeather" width="42" height="46" viewBox="0 0 24 26" fill="none" stroke="#c9a227" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+          <line x1="16" y1="8" x2="2" y2="22"/>
+          <line x1="17.5" y1="15" x2="9" y2="15"/>
+          <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
+          <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
+        </svg>
+        <h1 class="splash-title" id="splashTitle">Biblioteca Aeterna</h1>
+      </div>
     </div>
+    <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
   </div>
-  <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
 </div>
 
 <!-- ═══════════════ NAV ═══════════════ -->
@@ -1147,10 +1165,10 @@ body.splash-lock{overflow:hidden}
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.body.classList.add('splash-lock');
 
-  function openCurtain(){
+  function turnPage(){
     if(splash.classList.contains('opening'))return; // evita doppio trigger (skip + fine scrittura)
     splash.classList.add('opening');
-    const leftPanel=splash.querySelector('.splash-panel-left');
+    const page=document.getElementById('splashPage');
     const finish=()=>{
       splash.remove();
       document.body.classList.remove('splash-lock');
@@ -1159,16 +1177,16 @@ body.splash-lock{overflow:hidden}
     if(reduceMotion){
       setTimeout(finish,450);
     }else{
-      leftPanel.addEventListener('transitionend',finish,{once:true});
-      setTimeout(finish,1600); // rete di sicurezza se transitionend non parte
+      page.addEventListener('transitionend',e=>{if(e.propertyName==='transform')finish();},{once:true});
+      setTimeout(finish,1700); // rete di sicurezza se transitionend non parte
     }
   }
 
-  document.getElementById('splashSkip').addEventListener('click',openCurtain);
+  document.getElementById('splashSkip').addEventListener('click',turnPage);
 
   if(reduceMotion){
     // niente scrittura animata: breve pausa e via, dissolvenza semplice
-    setTimeout(openCurtain,700);
+    setTimeout(turnPage,700);
     return;
   }
 
@@ -1183,7 +1201,7 @@ body.splash-lock{overflow:hidden}
 
   splash.addEventListener('animationend',e=>{
     if(e.animationName==='splashReveal'){
-      setTimeout(openCurtain,550); // piccola pausa dopo l'ultima lettera
+      setTimeout(turnPage,550); // piccola pausa dopo l'ultima lettera
     }
   });
 })();
