@@ -570,28 +570,105 @@ body.splash-lock{overflow:hidden}
 .challenge-progress span{font-size:.76rem;color:var(--ink-3);white-space:nowrap}
 
 /* ══════════════════════════════════════════════════════════════════
-   PERCORSI TEMATICI
+   TABELLARIUM — Passaporto Letterario + Epistolarium
    ══════════════════════════════════════════════════════════════════ */
-.path-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-@media(max-width:900px){.path-grid{grid-template-columns:1fr}}
-.path-card{border:1px solid var(--line);display:block;transition:border-color .2s}
-.path-card:hover{border-color:var(--line-strong)}
-.path-media{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.path-media::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.3))}
-.path-ico{font-size:2.6rem;opacity:.9;position:relative;z-index:1}
-.tone-cold{background:radial-gradient(circle at 30% 22%,#2c3e50,#0c1116 78%)}
-.tone-terracotta{background:radial-gradient(circle at 30% 22%,#6b4530,#170e08 78%)}
-.tone-shadow{background:radial-gradient(circle at 30% 22%,#2e1c34,#0a0710 78%)}
-.tone-mist{background:radial-gradient(circle at 30% 22%,#255045,#0a1512 78%)}
-.tone-sepia{background:radial-gradient(circle at 30% 22%,#5a3d24,#160e08 78%)}
-.path-body{padding:26px 24px 28px}
-.path-body h3{font-family:var(--serif);font-size:1.28rem;color:var(--ink);margin-bottom:10px}
-.path-body p{color:var(--ink-2);font-size:.87rem;line-height:1.55;min-height:42px}
-.path-foot{display:flex;justify-content:space-between;align-items:center;margin-top:18px;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
-.path-arrow{color:var(--gold);transition:transform .2s}
-.path-card:hover .path-arrow{transform:translateX(3px)}
-.path-detail-title{font-size:2rem;color:var(--ink);margin-bottom:10px}
-.path-detail-desc{color:var(--ink-2);max-width:600px;margin-bottom:26px}
+
+/* ── selettore continenti (pagine del passaporto) ── */
+.continent-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px}
+.continent-chip{
+  display:flex;align-items:center;gap:9px;padding:10px 18px;border:1px solid var(--line-strong);
+  border-radius:30px;background:none;color:var(--ink-2);font-size:.86rem;transition:border-color .15s,color .15s;
+}
+.continent-chip:hover{border-color:var(--gold)}
+.continent-chip.active{border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash)}
+.continent-chip .cc-ico{font-size:1.05rem}
+.continent-chip .cc-trophy{font-size:.85rem;opacity:.85}
+
+/* ── griglia dei timbri (paesi) ── */
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+@media(max-width:980px){.stamp-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.stamp-grid{grid-template-columns:1fr}}
+.stamp-card{background:var(--bg);padding:30px 26px;cursor:pointer;transition:background .2s}
+.stamp-card:hover{background:var(--bg-2)}
+.stamp-card.expanded{background:var(--bg-2)}
+.stamp-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.stamp-seal{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:1.5rem;border:2px dashed var(--line-strong);color:var(--ink-3);transition:all .2s;
+}
+.stamp-seal.bronzo{border-style:solid;border-color:#c08a52;color:#c08a52;background:rgba(192,138,82,.08)}
+.stamp-seal.oro{border-style:solid;border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash);box-shadow:0 0 14px rgba(201,162,39,.35)}
+.stamp-name{font-family:var(--serif);font-size:1.12rem;color:var(--ink)}
+.stamp-tier-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}
+.stamp-tier-label.on-bronzo{color:#c08a52}
+.stamp-tier-label.on-oro{color:var(--gold-2)}
+.stamp-progress-row{display:flex;align-items:center;gap:12px}
+.stamp-progress-row .progress-track{flex:1}
+.stamp-progress-row span{font-size:.72rem;color:var(--ink-3);white-space:nowrap}
+.stamp-books{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);cursor:default}
+
+/* ── traguardo di continente completo ── */
+.continent-complete-note{
+  display:flex;align-items:center;gap:12px;border:1px solid var(--gold);background:var(--gold-wash);
+  padding:16px 22px;margin-bottom:32px;font-size:.86rem;color:var(--gold-2);
+}
+
+/* ── griglia delle cartoline (Epistolarium) ── */
+.postcard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+@media(max-width:900px){.postcard-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.postcard-grid{grid-template-columns:1fr}}
+.postcard-card{border:1px solid var(--line);transition:border-color .2s}
+.postcard-thumb{
+  aspect-ratio:3/2;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.postcard-thumb-ico{font-size:2.8rem;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}
+.postcard-card.unlocked{cursor:pointer}
+.postcard-card.unlocked:hover{border-color:var(--gold)}
+.postcard-card.locked .postcard-thumb{filter:grayscale(1) brightness(.45)}
+/* Tonalità delle scene: da assegnare a mano insieme a luogo/icona di ogni cartolina */
+.pc-tone-imperiale{background:radial-gradient(circle at 30% 25%,#5a2a2a,#150a08 78%)}
+.pc-tone-vittoriano{background:radial-gradient(circle at 30% 25%,#3a3226,#0e0b07 78%)}
+.pc-tone-mediterraneo{background:radial-gradient(circle at 30% 25%,#1f4a52,#081416 78%)}
+.pc-tone-oceanico{background:radial-gradient(circle at 30% 25%,#1c3a4a,#070f14 78%)}
+.pc-tone-iberico{background:radial-gradient(circle at 30% 25%,#4a3320,#0f0803 78%)}
+.pc-tone-ellenico{background:radial-gradient(circle at 30% 25%,#2c4a3e,#070f0c 78%)}
+.postcard-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(6,5,4,.45)}
+.postcard-lock span{font-size:1.5rem;opacity:.7}
+.postcard-stamp-corner{
+  position:absolute;top:10px;right:10px;font-size:1.3rem;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));
+}
+.postcard-body{padding:20px 22px}
+.postcard-body h3{font-family:var(--serif);font-size:1.08rem;color:var(--ink);margin-bottom:4px}
+.postcard-body p{font-size:.8rem;color:var(--ink-3);font-style:italic}
+.postcard-hint{font-size:.78rem;color:var(--ink-3);line-height:1.5;padding:0 22px 20px}
+
+/* ── modale: la cartolina si gira ── */
+.postcard-modal{max-width:520px}
+.postcard-flip{aspect-ratio:3/2;position:relative;perspective:1400px;margin-top:6px}
+.postcard-face{
+  position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--line-strong);
+  transition:transform .6s cubic-bezier(.4,.2,.2,1);
+}
+.postcard-front{transform:rotateY(0deg);overflow:hidden}
+.postcard-front-scene{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.postcard-front-ico{font-size:4rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
+.postcard-front-luogo{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:1.02rem;letter-spacing:.01em}
+.postcard-back{
+  transform:rotateY(180deg);background:var(--bg-2);padding:28px 30px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.postcard-flip.flipped .postcard-front{transform:rotateY(-180deg)}
+.postcard-flip.flipped .postcard-back{transform:rotateY(0deg)}
+.postcard-back-luogo{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-2);margin-bottom:12px}
+.postcard-back-testo{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:1.02rem;line-height:1.55}
+.postcard-back-cit{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-2);font-size:.86rem}
+@media(prefers-reduced-motion:reduce){
+  .postcard-face{transition:opacity .25s;transform:none!important}
+  .postcard-back{opacity:0;pointer-events:none}
+  .postcard-flip.flipped .postcard-front{opacity:0;pointer-events:none}
+  .postcard-flip.flipped .postcard-back{opacity:1;pointer-events:auto}
+}
 
 /* ══════════════════════════════════════════════════════════════════
    AGORÀ
@@ -712,7 +789,7 @@ body.splash-lock{overflow:hidden}
     </a>
     <nav class="nav-links">
       <a href="#" data-nav="lapides">Lapides Miliarii</a>
-      <a href="#" data-nav="percorsi">Percorsi</a>
+      <a href="#" data-nav="tabellarium">Tabellarium</a>
       <a href="#" data-nav="alexandria">Alexandria</a>
       <a href="#" data-nav="pantheon">Pantheon</a>
       <a href="#" data-nav="sfide">Sfide</a>
@@ -726,7 +803,7 @@ body.splash-lock{overflow:hidden}
   </div>
   <nav class="mobile-menu" id="mobileMenu">
     <a href="#" data-nav="lapides">Lapides Miliarii</a>
-    <a href="#" data-nav="percorsi">Percorsi</a>
+    <a href="#" data-nav="tabellarium">Tabellarium</a>
     <a href="#" data-nav="alexandria">Alexandria</a>
     <a href="#" data-nav="pantheon">Pantheon</a>
     <a href="#" data-nav="sfide">Sfide</a>
@@ -988,16 +1065,22 @@ body.splash-lock{overflow:hidden}
     </div>
   </section>
 
-  <!-- ═══════════════ PERCORSI TEMATICI ═══════════════ -->
-  <section class="page" id="page-percorsi">
+  <!-- ═══════════════ TABELLARIUM ═══════════════ -->
+  <section class="page" id="page-tabellarium">
     <div class="page-header">
       <div class="wrap">
-        <p class="eyebrow">Raccolte guidate</p>
-        <h1>Percorsi Tematici</h1>
-        <p>Mini-collezioni curate per esplorare la letteratura per tema. Segui un percorso, leggi le sue opere e osserva i tuoi progressi.</p>
+        <p class="eyebrow">Il mondo, un timbro alla volta</p>
+        <h1>Tabellarium</h1>
+        <p>Ogni classico letto è un timbro sul tuo passaporto letterario. Colleziona i timbri, completa i continenti e ricevi le cartoline d'epoca dei grandi autori nell'Epistolarium.</p>
       </div>
     </div>
-    <div class="wrap section" id="percorsiContent"><!-- popolato da JS --></div>
+    <div class="wrap section">
+      <div class="status-tabs" id="tabellariumTabs">
+        <button class="status-tab active" data-view="passaporto">Passaporto</button>
+        <button class="status-tab" data-view="epistolarium">Epistolarium</button>
+      </div>
+      <div id="tabellariumContent"><!-- popolato da JS --></div>
+    </div>
   </section>
 
   <!-- ═══════════════ AGORÀ ═══════════════ -->
@@ -1168,6 +1251,18 @@ body.splash-lock{overflow:hidden}
     <div class="modal-actions">
       <button class="btn btn-gold" id="newThreadSubmit" style="justify-content:center">Pubblica</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TABELLARIUM: cartolina dell'Epistolarium ═══════════════ -->
+<div class="modal-overlay" id="postcardOverlay">
+  <div class="modal modal-wide postcard-modal">
+    <button class="modal-close" id="postcardClose" aria-label="Chiudi">✕</button>
+    <div class="postcard-flip" id="postcardFlip">
+      <div class="postcard-face postcard-front" id="postcardFront"></div>
+      <div class="postcard-face postcard-back" id="postcardBack"></div>
+    </div>
+    <button class="btn btn-outline postcard-flip-btn" id="postcardFlipBtn" style="justify-content:center;margin-top:22px">Gira la cartolina →</button>
   </div>
 </div>
 
@@ -1394,7 +1489,7 @@ window.addEventListener('resize',()=>{if(window.innerWidth>940)closeMobileMenu()
    ══════════════════════════════════════════════════════════════════ */
 const STUBS={};
 /* Pagine vere (non stub): id di navigazione → id della sezione nel DOM. */
-const REAL_PAGES={home:'page-home',lapides:'page-lapides',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',sfide:'page-sfide',percorsi:'page-percorsi',agora:'page-agora'};
+const REAL_PAGES={home:'page-home',lapides:'page-lapides',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',sfide:'page-sfide',tabellarium:'page-tabellarium',agora:'page-agora'};
 function navigate(id){
   closeMobileMenu();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1405,7 +1500,7 @@ function navigate(id){
     if(id==='pantheon')renderPantheon();
     if(id==='profilo')renderProfilo();
     if(id==='sfide')renderSfide();
-    if(id==='percorsi'){selectedPath=null;renderPercorsi();}
+    if(id==='tabellarium')renderTabellarium();
     if(id==='agora')renderAgora();
   }else{
     const s=STUBS[id]||{title:'In costruzione',desc:'Questa sezione arriverà presto.'};
@@ -1718,7 +1813,7 @@ const BOOKS=[
   {id:'odyssey',t:'The Odyssey',a:'Omero',y:-800},
   {id:'anna-karenina',t:'Anna Karenina',a:'Lev Tolstoj',y:1877},
   {id:'crime-punishment',t:'Crime and Punishment',a:'Fëdor Dostoevskij',y:1866},
-  /* aggiunti per popolare i Percorsi Tematici */
+  /* aggiunti per popolare Tabellarium (Passaporto Letterario) */
   {id:'war-and-peace',t:'War and Peace',a:'Lev Tolstoj',y:1869},
   {id:'brothers-karamazov',t:'The Brothers Karamazov',a:'Fëdor Dostoevskij',y:1880},
   {id:'fathers-sons',t:'Fathers and Sons',a:'Ivan Turgenev',y:1862},
@@ -1785,7 +1880,7 @@ function setBookStatus(book,stato){
   if(typeof renderAlexResults==='function')renderAlexResults();
   if(typeof renderProfilo==='function')renderProfilo();
   if(typeof renderSfide==='function')renderSfide();
-  if(typeof renderPercorsi==='function')renderPercorsi();
+  if(typeof renderTabellarium==='function')renderTabellarium();
 
   if(currentUser){
     const req=rimuove
@@ -1846,7 +1941,7 @@ function renderLapidesProgress(){
 }
 /* Markup di una card-libro per libri "curati" (con data-cover, per il
    fetch lazy della copertina) — usata sia da Lapides Miliarii sia dai
-   Percorsi Tematici, che condividono lo stesso catalogo BOOKS. */
+   Tabellarium, che condividono lo stesso catalogo BOOKS. */
 function bookCardHTML(b,stato){
   const act=(key,label,icon)=>`<button class="book-act${stato===key?' on':''}" data-act="${key}" data-id="${b.id}">${icon} ${label}</button>`;
   return `
@@ -2342,84 +2437,261 @@ document.getElementById('challengesList').addEventListener('click',e=>{
 });
 
 /* ══════════════════════════════════════════════════════════════════
-   PERCORSI TEMATICI — collezioni curate dentro allo stesso catalogo
-   BOOKS di Lapides Miliarii. Ogni percorso è solo una lista di id;
-   il progresso si calcola sugli stessi stati "letto" di sempre.
+   TABELLARIUM — Passaporto Letterario + Epistolarium.
+
+   Nessuna tabella nuova nel backend: come i traguardi del Pantheon,
+   timbri e cartoline si calcolano lato client dai dati reali della
+   libreria (stato==='letto'), incrociati con due mappe curate a mano:
+   PAESI (quali libri "appartengono" a quale nazione/continente) ed
+   EPISTOLARIUM_CARDE (quale libro chiave sblocca la cartolina di quale
+   autore). Solo i libri già presenti in BOOKS (Lapides Miliarii) sono
+   collegabili: le scoperte fatte su Alexandria non hanno una nazione
+   assegnata, non essendo curate a mano.
+
+   ⚠️ DATI PLACEHOLDER: continenti, paesi e cartoline qui sotto sono un
+   primo scheletro con pochi esempi (assegnati per nazionalità
+   dell'autore, non per ambientazione) — l'elenco vero verrà scelto e
+   compilato a mano più avanti.
    ══════════════════════════════════════════════════════════════════ */
-const PATHS=[
-  {id:'russi',tone:'cold',icon:'🐻',title:'Romanzi Russi',
-   desc:"L'anima profonda della grande narrativa russa: colpa, redenzione e destino.",
-   books:['anna-karenina','crime-punishment','war-and-peace','brothers-karamazov','fathers-sons','dead-souls']},
-  {id:'greche',tone:'terracotta',icon:'🏛️',title:'Tragedie Greche',
-   desc:"Il fato e gli dèi nel teatro dell'antica Grecia.",
-   books:['oedipus-rex','antigone','medea','oresteia','prometheus-bound']},
-  {id:'gotico',tone:'shadow',icon:'🦇',title:'Gotico e Ombra',
-   desc:"Castelli, mostri e i lati oscuri dell'animo umano.",
-   books:['frankenstein','wuthering-heights','dracula','jekyll-hyde','dorian-gray']},
-  {id:'utopie',tone:'mist',icon:'🌐',title:'Utopie e Distopie',
-   desc:'Mondi immaginati per capire meglio il nostro.',
-   books:['1984','brave-new-world','utopia','gullivers-travels','fahrenheit-451']},
-  {id:'viaggi',tone:'sepia',icon:'🧭',title:'Grandi Viaggi',
-   desc:'Avventure ai confini del mondo conosciuto.',
-   books:['robinson-crusoe','treasure-island','around-world-80-days','gullivers-travels','huckleberry-finn']},
+
+const CONTINENTI=[
+  {id:'europa',   nome:'Europa',   icona:'🏰'},
+  {id:'asia',     nome:'Asia',     icona:'🏯'},
+  {id:'americhe', nome:'Americhe', icona:'🗽'},
+  {id:'africa',   nome:'Africa',   icona:'🌍'},
+  {id:'oceania',  nome:'Oceania',  icona:'🏝️'},
 ];
-let selectedPath=null;
-function pathProgress(path){
-  const lib=getLibrary();
-  return{letti:path.books.filter(id=>lib[id]?.stato==='letto').length,tot:path.books.length};
+
+const PAESI=[
+  {id:'russia',continente:'europa',nome:'Russia',bandiera:'🇷🇺',
+   libri:['anna-karenina','crime-punishment','war-and-peace','brothers-karamazov','fathers-sons','dead-souls']},
+  {id:'regno-unito',continente:'europa',nome:'Regno Unito',bandiera:'🇬🇧',
+   libri:['hamlet','macbeth','julius-caesar','midsummer','pride-prejudice','emma','sense-sensibility',
+          'wuthering-heights','christmas-carol','tale-two-cities','great-expectations','frankenstein',
+          'dracula','jekyll-hyde','dorian-gray','treasure-island','secret-garden','alice',
+          'gullivers-travels','robinson-crusoe','1984','brave-new-world','utopia']},
+  {id:'spagna',continente:'europa',nome:'Spagna',bandiera:'🇪🇸',libri:['don-quijote']},
+  {id:'francia',continente:'europa',nome:'Francia',bandiera:'🇫🇷',libri:['madame-bovary','around-world-80-days']},
+  {id:'grecia',continente:'europa',nome:'Grecia',bandiera:'🇬🇷',
+   libri:['odyssey','oedipus-rex','antigone','medea','oresteia','prometheus-bound']},
+  {id:'cina',continente:'asia',nome:'Cina',bandiera:'🇨🇳',libri:['art-of-war']},
+  {id:'usa',continente:'americhe',nome:'Stati Uniti',bandiera:'🇺🇸',
+   libri:['moby-dick','wizard-of-oz','huckleberry-finn','fahrenheit-451']},
+];
+
+// libroChiave deve essere un id presente in BOOKS. tono/icona sono la
+// "scena" illustrata della cartolina (nessuna foto esterna: coerente
+// con lo stile a tinte piatte già usato altrove nell'app).
+const EPISTOLARIUM_CARDE=[
+  {id:'shakespeare',autore:'William Shakespeare',libroChiave:'hamlet',
+   luogo:'Stratford-upon-Avon, Inghilterra',francobollo:'🎭',tono:'vittoriano',icona:'🎭',
+   retro:"Il Globe Theatre di Londra, dove molte delle sue opere debuttarono, bruciò completamente nel 1613 durante una recita e fu ricostruito l'anno successivo.",
+   citazione:'Essere, o non essere: questo è il dilemma.'},
+  {id:'austen',autore:'Jane Austen',libroChiave:'pride-prejudice',
+   luogo:'Chawton, Hampshire',francobollo:'🌹',tono:'vittoriano',icona:'🖋️',
+   retro:'Austen pubblicò i suoi romanzi in forma anonima, firmati solo "By a Lady": il suo nome comparve su un\u2019opera soltanto dopo la sua morte.',
+   citazione:'Una verità universalmente riconosciuta.'},
+  {id:'dickens',autore:'Charles Dickens',libroChiave:'great-expectations',
+   luogo:'Londra vittoriana',francobollo:'🕯️',tono:'vittoriano',icona:'🏙️',
+   retro:"Grandi Speranze uscì a puntate settimanali: Dickens riscrisse il finale dopo che un amico lo giudicò troppo triste per i lettori dell\u2019epoca.",
+   citazione:'Sono stato un bambino umile e riverente.'},
+  {id:'dostoevskij',autore:'Fëdor Dostoevskij',libroChiave:'crime-punishment',
+   luogo:'San Pietroburgo',francobollo:'✒️',tono:'imperiale',icona:'❄️',
+   retro:"Dostoevskij scrisse il romanzo sotto pressione economica, consegnandolo a puntate a una rivista per pagare i debiti di gioco.",
+   citazione:"Il dolore e la sofferenza sono sempre inevitabili."},
+  {id:'tolstoj',autore:'Lev Tolstoj',libroChiave:'war-and-peace',
+   luogo:'Jasnaja Poljana',francobollo:'🌾',tono:'imperiale',icona:'🌾',
+   retro:"Tolstoj riscrisse l'opera per intero più volte a mano; si stima che la sola moglie Sof'ja abbia ricopiato l'intero manoscritto svariate volte.",
+   citazione:'Tutto passa e il dolore svanisce.'},
+  {id:'cervantes',autore:'Miguel de Cervantes',libroChiave:'don-quijote',
+   luogo:'La Mancha',francobollo:'⚔️',tono:'iberico',icona:'🌾',
+   retro:'Considerato il primo romanzo moderno, fu scritto in parte mentre Cervantes era in carcere per irregolarità contabili.',
+   citazione:'La libertà è uno dei più preziosi doni.'},
+  {id:'melville',autore:'Herman Melville',libroChiave:'moby-dick',
+   luogo:'Nantucket',francobollo:'🐋',tono:'oceanico',icona:'🐋',
+   retro:"Al momento della pubblicazione, nel 1851, il romanzo fu un insuccesso commerciale: la fama arrivò solo decenni dopo la morte di Melville.",
+   citazione:'Chiamatemi Ismaele.'},
+  {id:'omero',autore:'Omero',libroChiave:'odyssey',
+   luogo:'Isole greche',francobollo:'🏺',tono:'ellenico',icona:'⛵',
+   retro:"Per secoli si è discusso se Omero sia esistito davvero o se il suo nome raccolga il lavoro di più cantori orali di un'intera tradizione.",
+   citazione:"Musa, dammi di quell'uomo il multiforme ingegno."},
+];
+
+let tabellariumView='passaporto';
+let tabellariumContinente=CONTINENTI.find(c=>PAESI.some(p=>p.continente===c.id))?.id||CONTINENTI[0].id;
+let tabellariumPaeseEspanso=null;
+
+function paeseTier(paese,lib){
+  const letti=paese.libri.filter(id=>lib[id]?.stato==='letto').length;
+  const sogliaOro=Math.min(3,paese.libri.length);
+  if(letti<=0)return'none';
+  if(letti>=sogliaOro)return'oro';
+  return'bronzo';
 }
-function renderPercorsi(){
-  const wrap=document.getElementById('percorsiContent');
-  if(!wrap)return;
-  if(!selectedPath){
-    wrap.innerHTML=`<div class="path-grid">${PATHS.map(p=>{
-      const{letti,tot}=pathProgress(p);
-      const pct=(letti/tot*100).toFixed(0);
-      return `
-      <a class="path-card" href="#" data-path="${p.id}">
-        <div class="path-media tone-${p.tone}"><span class="path-ico">${p.icon}</span></div>
-        <div class="path-body">
-          <h3>${p.title}</h3>
-          <p>${p.desc}</p>
-          <div class="path-foot"><span>${tot} opere</span><span class="path-arrow">→</span></div>
-          <div class="progress-track" style="margin-top:14px"><div class="progress-fill" style="width:${pct}%"></div></div>
-        </div>
-      </a>`;
-    }).join('')}</div>`;
-    return;
-  }
-  const path=PATHS.find(p=>p.id===selectedPath);
-  const books=path.books.map(id=>BOOKS.find(b=>b.id===id)).filter(Boolean);
-  const lib=getLibrary();
-  const{letti,tot}=pathProgress(path);
-  wrap.innerHTML=`
-    <button class="btn btn-outline" id="pathBack" style="margin-bottom:34px">← Tutti i percorsi</button>
-    <p class="eyebrow">Percorso tematico</p>
-    <h2 class="path-detail-title">${path.title}</h2>
-    <p class="path-detail-desc">${path.desc}</p>
-    <div class="progress-row" style="margin-bottom:40px">
-      <div class="progress-track"><div class="progress-fill" style="width:${(letti/tot*100).toFixed(0)}%"></div></div>
-      <span class="progress-label">${letti} di ${tot} lette</span>
-    </div>
-    <div class="book-grid">${books.map(b=>bookCardHTML(b,lib[b.id]?.stato)).join('')}</div>`;
-  loadCoversInBatches(books);
-  document.getElementById('pathBack').addEventListener('click',()=>{selectedPath=null;renderPercorsi();});
+function continenteCompletato(continenteId,lib){
+  const paesi=PAESI.filter(p=>p.continente===continenteId);
+  if(!paesi.length)return false;
+  return paesi.every(p=>paeseTier(p,lib)==='oro');
 }
-document.getElementById('percorsiContent').addEventListener('click',e=>{
-  const card=e.target.closest('[data-path]');
-  if(card){
-    e.preventDefault();
-    selectedPath=card.dataset.path;
-    renderPercorsi();
-    window.scrollTo({top:0,behavior:'instant'});
-    return;
-  }
-  const btn=e.target.closest('[data-act]');
-  if(btn){
-    const book=BOOKS.find(b=>b.id===btn.dataset.id);
-    if(book)setBookStatus(book,btn.dataset.act);
-  }
+
+function renderTabellarium(){
+  document.querySelectorAll('#tabellariumTabs .status-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===tabellariumView));
+  if(tabellariumView==='epistolarium')renderEpistolarium();
+  else renderPassaporto();
+}
+document.getElementById('tabellariumTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('[data-view]');
+  if(!tab)return;
+  tabellariumView=tab.dataset.view;
+  renderTabellarium();
 });
+
+function renderPassaporto(){
+  const wrap=document.getElementById('tabellariumContent');
+  if(!wrap)return;
+  const lib=getLibrary();
+
+  const chipsHTML=CONTINENTI.map(c=>{
+    const haPaesi=PAESI.some(p=>p.continente===c.id);
+    const completo=haPaesi&&continenteCompletato(c.id,lib);
+    return `<button class="continent-chip${c.id===tabellariumContinente?' active':''}" data-continente="${c.id}"${haPaesi?'':' style="opacity:.45"'}>
+      <span class="cc-ico">${c.icona}</span>${c.nome}${completo?'<span class="cc-trophy">🏆</span>':''}
+    </button>`;
+  }).join('');
+
+  const paesi=PAESI.filter(p=>p.continente===tabellariumContinente);
+  const completo=continenteCompletato(tabellariumContinente,lib);
+  const continenteNome=CONTINENTI.find(c=>c.id===tabellariumContinente)?.nome||'';
+
+  const noteHTML=completo?`<div class="continent-complete-note"><span>🏆</span><span>Premiazione Consolare: hai completato tutti i timbri d\u2019oro di ${continenteNome}!</span></div>`:'';
+
+  const grigliaHTML=paesi.length?`<div class="stamp-grid">${paesi.map(p=>stampCardHTML(p,lib)).join('')}</div>`
+    :`<div class="alex-state">Nessun paese ancora aggiunto in questo continente.</div>`;
+
+  wrap.innerHTML=`<div class="continent-row">${chipsHTML}</div>${noteHTML}${grigliaHTML}`;
+
+  // Le copertine dei libri nel paese espanso vanno caricate dopo l'inserimento nel DOM
+  const espanso=paesi.find(p=>p.id===tabellariumPaeseEspanso);
+  if(espanso){
+    const books=espanso.libri.map(id=>BOOKS.find(b=>b.id===id)).filter(Boolean);
+    loadCoversInBatches(books);
+  }
+}
+
+function stampCardHTML(paese,lib){
+  const tier=paeseTier(paese,lib);
+  const letti=paese.libri.filter(id=>lib[id]?.stato==='letto').length;
+  const sogliaOro=Math.min(3,paese.libri.length);
+  const pct=Math.min(100,(letti/sogliaOro*100)).toFixed(0);
+  const tierLabel=tier==='oro'?"Timbro d'oro":tier==='bronzo'?'Timbro di bronzo':'Nessun timbro ancora';
+  const sealIcon=tier==='oro'?'★':tier==='bronzo'?'✦':'✦';
+  const espanso=paese.id===tabellariumPaeseEspanso;
+
+  const bookListHTML=espanso?(()=>{
+    const books=paese.libri.map(id=>BOOKS.find(b=>b.id===id)).filter(Boolean);
+    return `<div class="stamp-books" onclick="event.stopPropagation()">
+      <div class="book-grid">${books.map(b=>bookCardHTML(b,lib[b.id]?.stato)).join('')}</div>
+    </div>`;
+  })():'';
+
+  return `
+    <div class="stamp-card${espanso?' expanded':''}" data-paese="${paese.id}">
+      <div class="stamp-top">
+        <div class="stamp-seal ${tier}">${paese.bandiera||sealIcon}</div>
+        <div>
+          <div class="stamp-name">${paese.nome}</div>
+          <div class="stamp-tier-label${tier!=='none'?' on-'+tier:''}">${tierLabel}</div>
+        </div>
+      </div>
+      <div class="stamp-progress-row">
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span>${letti} / ${sogliaOro} letti</span>
+      </div>
+      ${bookListHTML}
+    </div>`;
+}
+
+document.getElementById('tabellariumContent').addEventListener('click',e=>{
+  const chip=e.target.closest('[data-continente]');
+  if(chip){
+    tabellariumContinente=chip.dataset.continente;
+    tabellariumPaeseEspanso=null;
+    renderPassaporto();
+    return;
+  }
+  const bookAct=e.target.closest('[data-act]');
+  if(bookAct){
+    const book=BOOKS.find(b=>b.id===bookAct.dataset.id);
+    if(book)setBookStatus(book,bookAct.dataset.act);
+    return;
+  }
+  const card=e.target.closest('[data-paese]');
+  if(card){
+    tabellariumPaeseEspanso=tabellariumPaeseEspanso===card.dataset.paese?null:card.dataset.paese;
+    renderPassaporto();
+    return;
+  }
+  const postcard=e.target.closest('[data-postcard]');
+  if(postcard)openPostcard(postcard.dataset.postcard);
+});
+
+/* ── Epistolarium: le cartoline si sbloccano leggendo il libroChiave ── */
+function renderEpistolarium(){
+  const wrap=document.getElementById('tabellariumContent');
+  if(!wrap)return;
+  const lib=getLibrary();
+  wrap.innerHTML=`<div class="postcard-grid">${EPISTOLARIUM_CARDE.map(c=>{
+    const unlocked=lib[c.libroChiave]?.stato==='letto';
+    const libroTitolo=BOOKS.find(b=>b.id===c.libroChiave)?.t||c.libroChiave;
+    if(unlocked){
+      return `
+      <div class="postcard-card unlocked" data-postcard="${c.id}">
+        <div class="postcard-thumb pc-tone-${c.tono}">
+          <span class="postcard-thumb-ico">${c.icona}</span>
+          <span class="postcard-stamp-corner">${c.francobollo}</span>
+        </div>
+        <div class="postcard-body">
+          <h3>${c.autore}</h3>
+          <p>${c.luogo}</p>
+        </div>
+      </div>`;
+    }
+    return `
+      <div class="postcard-card locked">
+        <div class="postcard-thumb pc-tone-${c.tono}">
+          <div class="postcard-lock"><span>🔒</span></div>
+        </div>
+        <p class="postcard-hint">Leggi «${libroTitolo}» per ricevere questa cartolina.</p>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function openPostcard(id){
+  const card=EPISTOLARIUM_CARDE.find(c=>c.id===id);
+  if(!card)return;
+  document.getElementById('postcardFront').innerHTML=`
+    <div class="postcard-front-scene pc-tone-${card.tono}">
+      <span class="postcard-front-ico">${card.icona}</span>
+      <span class="postcard-front-luogo">${card.luogo}</span>
+    </div>`;
+  document.getElementById('postcardBack').innerHTML=`
+    <div>
+      <div class="postcard-back-luogo">Da ${card.autore}</div>
+      <div class="postcard-back-testo">${card.retro}</div>
+    </div>
+    <div class="postcard-back-cit">«${card.citazione}»</div>`;
+  const flip=document.getElementById('postcardFlip');
+  flip.classList.remove('flipped');
+  document.getElementById('postcardFlipBtn').textContent='Gira la cartolina →';
+  document.getElementById('postcardOverlay').classList.add('open');
+}
+document.getElementById('postcardFlipBtn').addEventListener('click',()=>{
+  const flip=document.getElementById('postcardFlip');
+  const girata=flip.classList.toggle('flipped');
+  document.getElementById('postcardFlipBtn').textContent=girata?'← Torna al fronte':'Gira la cartolina →';
+});
+document.getElementById('postcardClose').addEventListener('click',()=>document.getElementById('postcardOverlay').classList.remove('open'));
+document.getElementById('postcardOverlay').addEventListener('click',e=>{if(e.target.id==='postcardOverlay')e.currentTarget.classList.remove('open');});
 
 /* ══════════════════════════════════════════════════════════════════
    AGORÀ — unica sezione con testo libero scritto dagli utenti: qui,
@@ -2560,7 +2832,7 @@ function renderAllViews(){
   renderPantheon();
   renderProfilo();
   renderSfide();
-  if(typeof renderPercorsi==='function')renderPercorsi();
+  if(typeof renderTabellarium==='function')renderTabellarium();
   if(typeof renderAlexResults==='function')renderAlexResults();
 }
 
