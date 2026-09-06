@@ -7,7 +7,7 @@
 <meta name="description" content="Un santuario digitale per gli amanti della letteratura. Traccia le tue letture, discuti con altri lettori e conquista un posto nel Pantheon.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Caveat:wght@400;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════════════════════
    DESIGN TOKENS
@@ -430,15 +430,15 @@ body.splash-lock{overflow:hidden}
 .stub p{color:var(--ink-2);line-height:1.7;margin-bottom:30px}
 
 /* ══════════════════════════════════════════════════════════════════
-   PAGE HEADER (riusato da Lapides Miliarii e, in futuro, dalle altre
-   sezioni interne: stesso schema eyebrow + h1 + paragrafo della Home)
+   PAGE HEADER (schema eyebrow + h1 + paragrafo, riusato da Tabellarium,
+   Scriptorium e dalle altre sezioni interne)
    ══════════════════════════════════════════════════════════════════ */
 .page-header{padding:64px 0 48px;border-bottom:1px solid var(--line)}
 .page-header h1{font-size:clamp(2.2rem,4.4vw,3.2rem);color:var(--ink);margin-bottom:18px}
 .page-header p{color:var(--ink-2);max-width:620px;line-height:1.7;font-size:1.02rem}
 
 /* Barra di progresso: stesso trattino sottile dorato ovunque serva
-   mostrare un avanzamento (qui, poi in Pantheon/Sfide). */
+   mostrare un avanzamento (qui, poi nella Hero Card e nel Pantheon). */
 .progress-row{display:flex;align-items:center;gap:16px;margin-top:30px;max-width:420px}
 .progress-track{flex:1;height:2px;background:var(--line-strong);position:relative}
 .progress-fill{position:absolute;left:0;top:0;bottom:0;background:var(--gold);transition:width .5s cubic-bezier(.16,1,.3,1)}
@@ -592,81 +592,96 @@ body.splash-lock{overflow:hidden}
 
 .profile-empty{text-align:center;padding:70px 20px;color:var(--ink-3)}
 .profile-empty p{margin-bottom:22px;font-style:italic}
-
-/* ══════════════════════════════════════════════════════════════════
-   SFIDE DI LETTURA
-   ══════════════════════════════════════════════════════════════════ */
 .btn[disabled]{opacity:.55;cursor:default}
-.challenges{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
-.challenge-row{
-  background:var(--bg);padding:40px 44px;display:flex;justify-content:space-between;align-items:center;
-  gap:30px;flex-wrap:wrap;transition:background .2s;
-}
-.challenge-row.completed{background:var(--bg-2)}
-.challenge-text h3{font-size:1.5rem;color:var(--ink);margin-bottom:10px}
-.challenge-row.completed .challenge-text h3{color:var(--gold-2)}
-.challenge-text p{color:var(--ink-2);font-size:.92rem}
-.challenge-progress{display:flex;align-items:center;gap:14px;margin-top:18px;max-width:360px}
-.challenge-progress .progress-track{flex:1}
-.challenge-progress span{font-size:.76rem;color:var(--ink-3);white-space:nowrap}
 
 /* ══════════════════════════════════════════════════════════════════
-   TABELLARIUM — Passaporto Letterario + Epistolarium
+   TABELLARIUM — Passaporto Letterario + Epistolarium.
+   A differenza del resto dell'app (tema scuro/oro), qui i due oggetti
+   sono trattati come veri manufatti fisici — un passaporto rilegato e
+   una cartolina d'epoca — con carta chiara, inchiostro e bordo
+   aerogramma, appoggiati sullo sfondo scuro del sito come su un tavolo.
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── selettore continenti (pagine del passaporto) ── */
-.continent-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px}
-.continent-chip{
-  display:flex;align-items:center;gap:9px;padding:10px 18px;border:1px solid var(--line-strong);
-  border-radius:30px;background:none;color:var(--ink-2);font-size:.86rem;transition:border-color .15s,color .15s;
+/* ── copertina del passaporto ── */
+.passport-cover{
+  position:relative;background:linear-gradient(155deg,#3d1a18,#200d0c);
+  border:1px solid rgba(201,162,39,.35);padding:32px 40px;
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
 }
-.continent-chip:hover{border-color:var(--gold)}
-.continent-chip.active{border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash)}
-.continent-chip .cc-ico{font-size:1.05rem}
-.continent-chip .cc-trophy{font-size:.85rem;opacity:.85}
+.passport-cover::before{content:'';position:absolute;inset:9px;border:1px solid rgba(201,162,39,.22);pointer-events:none}
+.passport-emblem{font-size:2.1rem;color:var(--gold-2);flex-shrink:0}
+.passport-cover-text{flex:1;min-width:200px}
+.passport-cover-eyebrow{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+.passport-cover-title{font-family:var(--serif);font-size:1.6rem;color:var(--gold-2)}
+.passport-cover-serial{font-size:.68rem;letter-spacing:.1em;color:rgba(226,193,92,.55);white-space:nowrap}
+
+/* ── la pagina: carta chiara, righe leggere ── */
+.passport-page{
+  background:
+    repeating-linear-gradient(180deg,transparent,transparent 26px,rgba(44,32,19,.05) 26px,rgba(44,32,19,.05) 27px),
+    #efe3c4;
+  border:1px solid #cdb98a;border-top:none;
+  padding:28px 32px 36px;
+}
+@media(max-width:640px){.passport-page{padding:22px 18px 28px}}
+
+/* ── linguette dei continenti, come indici di pagina ── */
+.passport-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+.passport-tab{
+  display:flex;align-items:center;gap:7px;padding:9px 16px;
+  border:1px solid rgba(44,32,19,.28);border-bottom:none;background:rgba(255,255,255,.32);
+  color:#5c4a2e;font-size:.8rem;transition:background .15s,color .15s;
+}
+.passport-tab:hover:not(:disabled){background:rgba(255,255,255,.55)}
+.passport-tab.active{background:#fbf4e2;color:#3d1a18;font-weight:600;box-shadow:0 -2px 0 #9c4a1f inset}
+.passport-tab .pt-trophy{font-size:.82rem}
+
+/* ── nastro "Premiazione Consolare" ── */
+.passport-seal-note{
+  display:flex;align-items:center;gap:12px;background:#fbf4e2;border:1px solid #9c4a1f;
+  padding:14px 20px;margin-bottom:28px;color:#5a3410;font-size:.85rem;
+}
 
 /* ── griglia dei timbri (paesi) ── */
-.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
-@media(max-width:980px){.stamp-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.stamp-grid{grid-template-columns:1fr}}
-.stamp-card{background:var(--bg);padding:30px 26px;cursor:pointer;transition:background .2s}
-.stamp-card:hover{background:var(--bg-2)}
-.stamp-card.expanded{background:var(--bg-2)}
-.stamp-top{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.stamp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+@media(max-width:980px){.stamp-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:720px){.stamp-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:460px){.stamp-grid{grid-template-columns:1fr}}
+.stamp-card{
+  background:transparent;border:none;padding:18px 8px;cursor:pointer;border-radius:3px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;transition:background .15s;
+}
+.stamp-card:hover,.stamp-card.expanded{background:rgba(44,32,19,.06)}
+.stamp-card.expanded{grid-column:1/-1;padding:22px 22px 24px}
+.stamp-expanded-head{display:flex;align-items:center;gap:18px;text-align:left;width:100%}
 .stamp-seal{
-  width:52px;height:52px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
-  font-size:1.5rem;border:2px dashed var(--line-strong);color:var(--ink-3);transition:all .2s;
+  width:92px;height:92px;border-radius:50%;flex-shrink:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  font-family:var(--serif);
 }
-.stamp-seal.bronzo{border-style:solid;border-color:#c08a52;color:#c08a52;background:rgba(192,138,82,.08)}
-.stamp-seal.oro{border-style:solid;border-color:var(--gold);color:var(--gold-2);background:var(--gold-wash);box-shadow:0 0 14px rgba(201,162,39,.35)}
-.stamp-name{font-family:var(--serif);font-size:1.12rem;color:var(--ink)}
-.stamp-tier-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:3px}
-.stamp-tier-label.on-bronzo{color:#c08a52}
-.stamp-tier-label.on-oro{color:var(--gold-2)}
-.stamp-progress-row{display:flex;align-items:center;gap:12px}
-.stamp-progress-row .progress-track{flex:1}
-.stamp-progress-row span{font-size:.72rem;color:var(--ink-3);white-space:nowrap}
-.stamp-books{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);cursor:default}
+.stamp-seal .ss-flag{font-size:1.6rem;line-height:1}
+.stamp-seal .ss-nome{font-size:.6rem;letter-spacing:.03em;text-transform:uppercase;line-height:1.15;max-width:72px}
+.stamp-seal.none{border:2px dashed rgba(44,32,19,.3);color:rgba(44,32,19,.45)}
+.stamp-seal.bronzo{border:3px double #8a5a2e;color:#8a5a2e}
+.stamp-seal.oro{border:3px double #9c4a1f;color:#9c4a1f;box-shadow:0 0 0 3px rgba(156,74,31,.14)}
+.stamp-tier-label{font-size:.66rem;letter-spacing:.05em;color:#7a684a}
+.stamp-tier-label.on-bronzo{color:#8a5a2e}
+.stamp-tier-label.on-oro{color:#9c4a1f;font-weight:600}
+.stamp-progress-mini{width:76px;height:3px;background:rgba(44,32,19,.16);position:relative}
+.stamp-progress-mini i{position:absolute;left:0;top:0;bottom:0;background:#9c4a1f}
+.stamp-books{margin-top:20px;padding:20px;background:var(--bg-2);border:1px solid var(--line);cursor:default}
 
-/* ── traguardo di continente completo ── */
-.continent-complete-note{
-  display:flex;align-items:center;gap:12px;border:1px solid var(--gold);background:var(--gold-wash);
-  padding:16px 22px;margin-bottom:32px;font-size:.86rem;color:var(--gold-2);
-}
-
-/* ── griglia delle cartoline (Epistolarium) ── */
-.postcard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+/* ── griglia delle cartoline (Epistolarium) — cornice color carta ── */
+.postcard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
 @media(max-width:900px){.postcard-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.postcard-grid{grid-template-columns:1fr}}
-.postcard-card{border:1px solid var(--line);transition:border-color .2s}
-.postcard-thumb{
-  aspect-ratio:3/2;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-}
-.postcard-thumb-ico{font-size:2.8rem;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}
+.postcard-card{background:none}
 .postcard-card.unlocked{cursor:pointer}
-.postcard-card.unlocked:hover{border-color:var(--gold)}
-.postcard-card.locked .postcard-thumb{filter:grayscale(1) brightness(.45)}
+.postcard-frame{background:#f4efe3;padding:9px;box-shadow:0 4px 14px rgba(0,0,0,.35);transition:box-shadow .2s,transform .2s}
+.postcard-card.unlocked:hover .postcard-frame{box-shadow:0 8px 22px rgba(0,0,0,.5);transform:translateY(-2px)}
+.postcard-thumb{aspect-ratio:3/2;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.postcard-thumb-ico{font-size:2.6rem;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}
+.postcard-card.locked .postcard-thumb{filter:grayscale(1) brightness(.5)}
 /* Tonalità delle scene: da assegnare a mano insieme a luogo/icona di ogni cartolina */
 .pc-tone-imperiale{background:radial-gradient(circle at 30% 25%,#5a2a2a,#150a08 78%)}
 .pc-tone-vittoriano{background:radial-gradient(circle at 30% 25%,#3a3226,#0e0b07 78%)}
@@ -674,36 +689,55 @@ body.splash-lock{overflow:hidden}
 .pc-tone-oceanico{background:radial-gradient(circle at 30% 25%,#1c3a4a,#070f14 78%)}
 .pc-tone-iberico{background:radial-gradient(circle at 30% 25%,#4a3320,#0f0803 78%)}
 .pc-tone-ellenico{background:radial-gradient(circle at 30% 25%,#2c4a3e,#070f0c 78%)}
-.postcard-lock{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:rgba(6,5,4,.45)}
-.postcard-lock span{font-size:1.5rem;opacity:.7}
-.postcard-stamp-corner{
-  position:absolute;top:10px;right:10px;font-size:1.3rem;
-  filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));
-}
-.postcard-body{padding:20px 22px}
-.postcard-body h3{font-family:var(--serif);font-size:1.08rem;color:var(--ink);margin-bottom:4px}
-.postcard-body p{font-size:.8rem;color:var(--ink-3);font-style:italic}
-.postcard-hint{font-size:.78rem;color:var(--ink-3);line-height:1.5;padding:0 22px 20px}
+.postcard-lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,5,4,.4)}
+.postcard-lock span{font-size:1.4rem;opacity:.75}
+.postcard-stamp-corner{position:absolute;top:8px;right:8px;font-size:1.2rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.postcard-caption{padding:14px 4px 0}
+.postcard-caption h3{font-family:var(--serif);font-size:1.04rem;color:var(--ink);margin-bottom:3px}
+.postcard-caption p{font-size:.78rem;color:var(--ink-3);font-style:italic}
+.postcard-hint{font-size:.78rem;color:var(--ink-3);line-height:1.5;padding:12px 4px 0}
 
 /* ── modale: la cartolina si gira ── */
-.postcard-modal{max-width:520px}
+.postcard-modal{max-width:560px}
 .postcard-flip{aspect-ratio:3/2;position:relative;perspective:1400px;margin-top:6px}
-.postcard-face{
-  position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--line-strong);
-  transition:transform .6s cubic-bezier(.4,.2,.2,1);
-}
-.postcard-front{transform:rotateY(0deg);overflow:hidden}
-.postcard-front-scene{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
-.postcard-front-ico{font-size:4rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
-.postcard-front-luogo{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:1.02rem;letter-spacing:.01em}
-.postcard-back{
-  transform:rotateY(180deg);background:var(--bg-2);padding:28px 30px;display:flex;flex-direction:column;justify-content:space-between;
-}
+.postcard-face{position:absolute;inset:0;backface-visibility:hidden;transition:transform .6s cubic-bezier(.4,.2,.2,1);box-shadow:0 6px 22px rgba(0,0,0,.4)}
+.postcard-front{transform:rotateY(0deg);background:#f4efe3;padding:14px}
+.postcard-front-scene{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.postcard-front-ico{font-size:3.6rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.45))}
 .postcard-flip.flipped .postcard-front{transform:rotateY(-180deg)}
 .postcard-flip.flipped .postcard-back{transform:rotateY(0deg)}
-.postcard-back-luogo{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-2);margin-bottom:12px}
-.postcard-back-testo{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:1.02rem;line-height:1.55}
-.postcard-back-cit{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-2);font-size:.86rem}
+
+/* retro: bordo da aerogramma + impaginazione da vera cartolina */
+.postcard-back{
+  transform:rotateY(180deg);padding:7px;
+  background:repeating-linear-gradient(45deg,#a83a34 0 9px,#f4efe3 9px 18px,#f4efe3 18px 27px,#28425f 27px 36px,#f4efe3 36px 45px);
+}
+.postcard-back-inner{background:#f4efe3;height:100%;padding:16px 18px 12px;display:flex;flex-direction:column;color:#2c2013;font-family:var(--sans)}
+.pb-row-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.pb-return{font-size:.6rem;line-height:1.4;color:#6b5636;letter-spacing:.02em}
+.pb-stampzone{display:flex;align-items:flex-start;gap:7px}
+.pb-stampbox{width:32px;height:38px;border:1px dashed #8a6a1f;display:flex;align-items:center;justify-content:center;font-size:1rem;color:#8a6a1f;flex-shrink:0}
+.pb-postmark{
+  width:42px;height:42px;border-radius:50%;border:1.5px solid rgba(44,32,19,.4);
+  display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:.62rem;
+  color:rgba(44,32,19,.55);transform:rotate(-8deg);text-align:center;
+}
+.pb-title{text-align:center;font-family:var(--serif);letter-spacing:.22em;font-size:.78rem;color:#6b5636;
+  border-bottom:1px solid rgba(44,32,19,.25);padding-bottom:7px;margin-bottom:10px}
+.pb-columns{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:0}
+.pb-message{border-right:1px dashed rgba(44,32,19,.3);padding-right:14px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
+.pb-message p{font-family:'Caveat',cursive;font-size:1.2rem;line-height:1.3;color:#2c2013}
+.pb-firma{margin-top:8px;font-size:1.1rem;text-align:right}
+.pb-address{padding-left:14px;display:flex;flex-direction:column;gap:2px}
+.pb-address-to{font-family:'Caveat',cursive;font-size:1.4rem;color:#2c2013;margin-bottom:2px}
+.pb-address-line{font-family:'Caveat',cursive;font-size:1.08rem;color:#2c2013;border-bottom:1px dotted rgba(44,32,19,.35);padding-bottom:1px}
+.pb-cit{margin-top:12px;font-family:var(--serif);font-style:italic;font-size:.74rem;color:#6b5636}
+@media(max-width:480px){
+  .postcard-flip{aspect-ratio:3/3.6}
+  .pb-columns{grid-template-columns:1fr}
+  .pb-message{border-right:none;border-bottom:1px dashed rgba(44,32,19,.3);padding-right:0;padding-bottom:10px;margin-bottom:10px}
+  .pb-address{padding-left:0}
+}
 @media(prefers-reduced-motion:reduce){
   .postcard-face{transition:opacity .25s;transform:none!important}
   .postcard-back{opacity:0;pointer-events:none}
@@ -910,13 +944,17 @@ body.splash-lock{overflow:hidden}
       </div>
     </div>
 
+    <div class="wrap section" style="padding-bottom:0">
+      <div class="reading-card" id="readingHeroCard"><!-- popolato da JS --></div>
+    </div>
+
     <div class="wrap section">
       <div class="features">
-        <a class="feature" href="#" data-nav="lapides">
-          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6 3h9a3 3 0 0 1 3 3v15H9a3 3 0 0 1-3-3V3Z" stroke="currentColor" stroke-width="1.3"/><path d="M6 17h12" stroke="currentColor" stroke-width="1.3"/></svg></div>
-          <p class="eyebrow">Le pietre miliari</p>
-          <h3>Lapides Miliarii</h3>
-          <p>Una collezione curata dei più grandi classici che hanno segnato la storia della letteratura.</p>
+        <a class="feature" href="#" data-nav="tabellarium">
+          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4" width="17" height="16" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M12 4v16M7 9h1.5M7 13h1.5M15.5 9H17M15.5 13H17" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+          <p class="eyebrow">Il mondo, un timbro alla volta</p>
+          <h3>Tabellarium</h3>
+          <p>Il tuo passaporto letterario. Colleziona timbri di visita e le cartoline d'epoca dell'Epistolarium.</p>
         </a>
         <a class="feature" href="#" data-nav="alexandria">
           <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.3"/><path d="m20 20-4.3-4.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
@@ -966,36 +1004,12 @@ body.splash-lock{overflow:hidden}
         </div>
         <div class="cta-text">
           <h2>Il tuo nome, inciso tra i lettori.</h2>
-          <p>Crea la tua biblioteca personale, colleziona traguardi e affronta sfide di lettura. L'immortalità letteraria inizia da una singola pagina.</p>
+          <p>Crea la tua biblioteca personale, colleziona traguardi e tieni traccia di ogni sessione di lettura. L'immortalità letteraria inizia da una singola pagina.</p>
         </div>
         <div class="cta-actions" id="ctaActions"><!-- popolato da JS --></div>
       </div>
     </div>
 
-  </section>
-
-  <!-- ═══════════════ LAPIDES MILIARII ═══════════════ -->
-  <section class="page" id="page-lapides">
-    <div class="page-header">
-      <div class="wrap">
-        <p class="eyebrow">Le pietre miliari</p>
-        <h1>Lapides Miliarii</h1>
-        <p>Le opere che hanno definito il canone letterario. Aggiungile alla tua biblioteca, segnale come lette e conquista i traguardi del Pantheon.</p>
-        <div class="progress-row">
-          <div class="progress-track"><div class="progress-fill" id="lapidesProgressFill" style="width:0%"></div></div>
-          <span class="progress-label" id="lapidesProgressLabel">0 di 24 lette</span>
-        </div>
-      </div>
-    </div>
-    <div class="wrap section">
-      <div class="status-tabs" id="lapidesTabs">
-        <button class="status-tab active" data-filter="tutte">Tutte</button>
-        <button class="status-tab" data-filter="in_lettura">In lettura</button>
-        <button class="status-tab" data-filter="letto">Lette</button>
-        <button class="status-tab" data-filter="desiderio">Desideri</button>
-      </div>
-      <div class="book-grid" id="bookGrid"><!-- popolato da JS --></div>
-    </div>
   </section>
 
   <!-- ═══════════════ PANTHEON ═══════════════ -->
@@ -1104,9 +1118,9 @@ body.splash-lock{overflow:hidden}
           <div class="stat-label">Recensioni</div>
         </div>
         <div class="stat-card">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.3"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.3"/></svg>
-          <div class="stat-num" id="profStatSfide">0</div>
-          <div class="stat-label">Sfide completate</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-6-4-6 4V3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+          <div class="stat-num" id="profStatNote">0</div>
+          <div class="stat-label">Note nello Scriptorium</div>
         </div>
       </div>
 
@@ -1132,19 +1146,6 @@ body.splash-lock{overflow:hidden}
         <button class="status-tab" data-filter="desiderio">Desideri <span id="tabDesideriCount">(0)</span></button>
       </div>
       <div id="profiloList"><!-- popolato da JS --></div>
-    </div>
-  </section>
-
-  <!-- ═══════════════ SFIDE DI LETTURA ═══════════════ -->
-  <section class="page" id="page-sfide">
-    <div class="page-header">
-      <div class="wrap">
-        <p class="eyebrow">Metti alla prova la tua dedizione</p>
-        <h1>Sfide di Lettura</h1>
-      </div>
-    </div>
-    <div class="wrap section">
-      <div class="challenges" id="challengesList"><!-- popolato da JS --></div>
     </div>
   </section>
 
@@ -1476,7 +1477,7 @@ body.splash-lock{overflow:hidden}
    currentUser vive solo in memoria: chi tiene la sessione "loggata" è
    il cookie di sessione del backend, verificato ad ogni avvio tramite
    /api/auth/me. Tutte le funzioni che leggono/scrivono dati personali
-   (libreria, obiettivo, sfide) restano sincrone verso il resto del
+   (libreria, obiettivo, note) restano sincrone verso il resto del
    codice: leggono da una cache in memoria che viene popolata da
    loadUserData() dopo login/registrazione/avvio, e scrivono sia nella
    cache sia (in background) verso l'API giusta.
@@ -1630,17 +1631,15 @@ window.addEventListener('resize',()=>{if(window.innerWidth>940)closeMobileMenu()
    ══════════════════════════════════════════════════════════════════ */
 const STUBS={};
 /* Pagine vere (non stub): id di navigazione → id della sezione nel DOM. */
-const REAL_PAGES={home:'page-home',lapides:'page-lapides',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',sfide:'page-sfide',tabellarium:'page-tabellarium',scriptorium:'page-scriptorium',agora:'page-agora'};
+const REAL_PAGES={home:'page-home',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',tabellarium:'page-tabellarium',scriptorium:'page-scriptorium',agora:'page-agora'};
 function navigate(id){
   closeMobileMenu();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.bottom-nav a, .mobile-menu a').forEach(a=>a.classList.toggle('active',a.dataset.nav===id));
   if(REAL_PAGES[id]){
     document.getElementById(REAL_PAGES[id]).classList.add('active');
-    if(id==='lapides')renderLapides();
     if(id==='pantheon')renderPantheon();
     if(id==='profilo')renderProfilo();
-    if(id==='sfide')renderSfide();
     if(id==='tabellarium')renderTabellarium();
     if(id==='scriptorium')renderScriptorium();
     if(id==='agora')renderAgora();
@@ -1925,11 +1924,14 @@ document.getElementById('ephemerisBody').addEventListener('click',async ev=>{
 });
 
 /* ══════════════════════════════════════════════════════════════════
-   LAPIDES MILIARII — dati dei libri + stato di lettura personale
-   ══════════════════════════════════════════════════════════════════
-   Quando arriverà il backend, BOOKS potrà venire da un endpoint tipo
-   GET /api/lapides, e la libreria personale da GET/POST /api/libreria.
-   Per ora tutto vive qui e in localStorage. */
+   LIBRERIA PERSONALE — dati dei libri "curati" (Tabellarium/Alexandria)
+   + stato di lettura personale ('in_lettura'|'letto'|'desiderio').
+   BOOKS resta il catalogo curato usato dal Tabellarium (Passaporto
+   Letterario) per assegnare libri a paesi/continenti: non esiste più
+   una pagina dedicata a sfogliarlo (era "Lapides Miliarii", rimossa —
+   Tabellarium è ormai sufficiente per l'esplorazione), ma bookCardHTML()
+   qui sotto resta in uso per le liste di libri espanse dei singoli
+   paesi del Passaporto. Per ora tutto vive qui e in localStorage. */
 const BOOKS=[
   {id:'alice',t:"Alice's Adventures in Wonderland",a:'Lewis Carroll',y:1865},
   {id:'christmas-carol',t:'A Christmas Carol',a:'Charles Dickens',y:1843},
@@ -1980,8 +1982,8 @@ function fmtYear(y){return y<0?`${Math.abs(y)} a.C.`:y;}
 
 /* Ogni voce è un oggetto {stato, titolo, autore, anno, cover} — non solo
    una stringa — perché da Alexandria arriveranno libri che non fanno
-   parte dei 24 curati di Lapides Miliarii, e ci serve poterli mostrare
-   ovunque (Pantheon, Profilo) senza doverli ricercare in BOOKS.
+   parte dei curati di BOOKS, e ci serve poterli mostrare ovunque
+   (Home, Pantheon, Profilo) senza doverli ricercare in BOOKS.
 
    libreriaCache è la fonte di verità letta da tutte le view (sincrona).
    Viene popolata:
@@ -2016,13 +2018,11 @@ function setBookStatus(book,stato){
   }else{
     lib[book.id]={stato,titolo:book.t,autore:book.a,anno:book.y,cover:book.cover||null};
   }
-  renderBookGrid();
-  renderLapidesProgress();
   renderPantheon();
   if(typeof renderAlexResults==='function')renderAlexResults();
   if(typeof renderProfilo==='function')renderProfilo();
-  if(typeof renderSfide==='function')renderSfide();
   if(typeof renderTabellarium==='function')renderTabellarium();
+  if(typeof renderReadingHero==='function')renderReadingHero();
 
   if(currentUser){
     const req=rimuove
@@ -2072,18 +2072,9 @@ async function loadCoversInBatches(books,batchSize=4){
   }
 }
 
-let lapidesFilter='tutte';
-function renderLapidesProgress(){
-  const lib=getLibrary();
-  const letti=BOOKS.filter(b=>lib[b.id]?.stato==='letto').length;
-  const fill=document.getElementById('lapidesProgressFill');
-  const label=document.getElementById('lapidesProgressLabel');
-  if(fill)fill.style.width=(letti/BOOKS.length*100).toFixed(1)+'%';
-  if(label)label.textContent=`${letti} di ${BOOKS.length} lette`;
-}
 /* Markup di una card-libro per libri "curati" (con data-cover, per il
-   fetch lazy della copertina) — usata sia da Lapides Miliarii sia dai
-   Tabellarium, che condividono lo stesso catalogo BOOKS. */
+   fetch lazy della copertina) — usata dalle liste di libri espanse di
+   ogni paese nel Passaporto Letterario del Tabellarium. */
 function bookCardHTML(b,stato){
   const act=(key,label,icon)=>`<button class="book-act${stato===key?' on':''}" data-act="${key}" data-id="${b.id}">${icon} ${label}</button>`;
   return `
@@ -2105,38 +2096,74 @@ function bookCardHTML(b,stato){
       </div>
     </div>`;
 }
-function renderBookGrid(){
-  const grid=document.getElementById('bookGrid');
-  if(!grid)return;
-  const lib=getLibrary();
-  const visible=lapidesFilter==='tutte'?BOOKS:BOOKS.filter(b=>lib[b.id]?.stato===lapidesFilter);
-  if(!visible.length){
-    grid.innerHTML=`<p style="grid-column:1/-1;color:var(--ink-3);font-style:italic;padding:30px 0">Nessun libro in questa sezione, per ora.</p>`;
+
+/* ══════════════════════════════════════════════════════════════════
+   READING HERO CARD (Home) — il libro "in lettura ora", con una barra
+   di avanzamento e il pulsante per registrare una sessione di lettura.
+   Le "sessioni" sono uno scheletro puramente client-side (localStorage,
+   non sincronizzato sull'account): non esiste ancora, né qui né nel
+   documento di gamification, una vera unità di misura del progresso
+   di lettura (pagine? capitoli?), quindi per ora contiamo solo quante
+   volte l'utente ha premuto "Registra sessione" — stesso spirito dei
+   traguardi del Pantheon, "in attesa di una progettazione dedicata".
+   Se ci sono più libri "in lettura", si mostra il primo della cache
+   (per gli utenti loggati corrisponde al più aggiornato di recente,
+   dato che /api/libreria li restituisce già ordinati così). */
+const LS_SESSIONI='aeterna_sessioni_lettura';
+const SESSIONI_TARGET=5; // soglia puramente visiva della barra di avanzamento
+let sessioniCache={};
+function readLocalSessioni(){try{return JSON.parse(localStorage.getItem(LS_SESSIONI))||{};}catch{return{};}}
+function writeLocalSessioni(obj){localStorage.setItem(LS_SESSIONI,JSON.stringify(obj));}
+function getSessioni(){return sessioniCache;}
+
+function pickLibroInLettura(){
+  const voce=Object.entries(getLibrary()).find(([,e])=>e.stato==='in_lettura');
+  return voce?{id:voce[0],...voce[1]}:null;
+}
+
+function renderReadingHero(){
+  const el=document.getElementById('readingHeroCard');
+  if(!el)return;
+  const libro=pickLibroInLettura();
+  if(!libro){
+    el.className='reading-card empty';
+    el.innerHTML=`
+      <div>
+        <p class="eyebrow">In lettura</p>
+        <p>Non stai leggendo nulla al momento.</p>
+      </div>
+      <a href="#" class="btn btn-outline" data-nav="alexandria">Scegli un libro →</a>`;
     return;
   }
-  grid.innerHTML=visible.map(b=>bookCardHTML(b,lib[b.id]?.stato)).join('');
-  loadCoversInBatches(visible);
+  el.className='reading-card';
+  const sessioni=getSessioni()[libro.id]||0;
+  const pct=Math.min(100,(sessioni/SESSIONI_TARGET*100));
+  el.innerHTML=`
+    <div class="reading-card-cover">
+      <div class="reading-card-fallback">${(libro.titolo||'?')[0]}</div>
+      ${libro.cover?`<img src="${libro.cover}" alt="Copertina di ${escapeHtml(libro.titolo)}">`:''}
+    </div>
+    <div class="reading-card-body">
+      <p class="eyebrow">In lettura ora</p>
+      <div class="reading-card-title">${escapeHtml(libro.titolo)}</div>
+      ${libro.autore?`<div class="reading-card-author">${escapeHtml(libro.autore)}</div>`:''}
+      <div class="progress-row" style="margin-top:16px;max-width:320px">
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span class="progress-label">${sessioni} ${sessioni===1?'sessione':'sessioni'}</span>
+      </div>
+    </div>
+    <button class="btn btn-gold" id="btnRegistraSessione">Registra sessione di lettura</button>`;
+  document.getElementById('btnRegistraSessione').addEventListener('click',()=>registraSessioneLettura(libro.id));
 }
-document.getElementById('bookGrid').addEventListener('click',e=>{
-  const btn=e.target.closest('[data-act]');
-  if(!btn)return;
-  const book=BOOKS.find(b=>b.id===btn.dataset.id);
-  if(book)setBookStatus(book,btn.dataset.act);
-});
-document.getElementById('lapidesTabs').addEventListener('click',e=>{
-  const tab=e.target.closest('.status-tab');
-  if(!tab)return;
-  lapidesFilter=tab.dataset.filter;
-  document.querySelectorAll('.status-tab').forEach(t=>t.classList.toggle('active',t===tab));
-  renderBookGrid();
-});
-function renderLapides(){
-  renderLapidesProgress();
-  renderBookGrid();
+function registraSessioneLettura(bookId){
+  sessioniCache={...sessioniCache,[bookId]:(sessioniCache[bookId]||0)+1};
+  writeLocalSessioni(sessioniCache);
+  renderReadingHero();
+  navigate('pantheon');
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   PANTHEON — traguardi calcolati sui dati reali di Lapides Miliarii.
+   PANTHEON — traguardi calcolati sui dati reali della libreria.
    Con l'arrivo dello Scriptorium, "recensioni" riflette il numero reale
    di note di tipo 'recensione' scritte dall'utente: i traguardi legati
    alla scrittura (Prima Voce, Cronista) usano quel dato invece di uno
@@ -2221,7 +2248,7 @@ document.getElementById('btnLogoutPantheon').addEventListener('click',eseguiLogo
 
 /* ══════════════════════════════════════════════════════════════════
    ALEXANDRIA — ricerca vera sul catalogo di Open Library.
-   A differenza di Lapides Miliarii (dove cerchiamo la copertina di un
+   A differenza del catalogo curato di BOOKS (dove cerchiamo la copertina di un
    libro che già conosciamo), qui la ricerca stessa restituisce già il
    cover_i insieme a titolo/autore/anno: niente fetch aggiuntive.
    ══════════════════════════════════════════════════════════════════ */
@@ -2313,7 +2340,7 @@ document.querySelectorAll('.chip').forEach(chip=>{
 
 /* ══════════════════════════════════════════════════════════════════
    PROFILO — riusa aeterna_libreria: nessun dato nuovo da inventare,
-   solo un'altra vista sugli stessi libri già visti in Lapides/Alexandria.
+   solo un'altra vista sugli stessi libri già visti in Tabellarium/Alexandria.
    ══════════════════════════════════════════════════════════════════ */
 const LS_GOAL='aeterna_obiettivo';
 let goalValue=12;
@@ -2347,7 +2374,7 @@ function renderProfilo(){
   document.getElementById('profStatBiblioteca').textContent=entries.length;
   document.getElementById('profStatLetti').textContent=letti;
   document.getElementById('profStatRecensioni').textContent=numeroRecensioni();
-  document.getElementById('profStatSfide').textContent=typeof completedChallenges==='function'?completedChallenges():0;
+  document.getElementById('profStatNote').textContent=typeof getScriptorium==='function'?getScriptorium().length:0;
 
   document.getElementById('goalYear').textContent=new Date().getFullYear();
   const goal=getGoal();
@@ -2377,7 +2404,7 @@ function renderProfiloList(){
     list.innerHTML=`<div class="profile-empty">
       <div class="stub-ico" style="margin-bottom:14px">✦</div>
       <p>Nessun volume in questa sezione.</p>
-      <button class="btn btn-gold" data-nav="lapides">Esplora i grandi classici</button>
+      <button class="btn btn-gold" data-nav="tabellarium">Esplora i grandi classici</button>
     </div>`;
     return;
   }
@@ -2426,43 +2453,6 @@ document.getElementById('goalForm').addEventListener('submit',e=>{
 document.getElementById('profiloLoginLink')?.addEventListener('click',e=>{e.preventDefault();openAuth('login');});
 
 /* ══════════════════════════════════════════════════════════════════
-   SFIDE DI LETTURA — progresso calcolato sui libri "letto" totali,
-   stesso identico dato usato in Pantheon e Profilo. Una sfida si
-   considera completata quando, da accettata, il totale letti raggiunge
-   il target: semplice ma coerente con come funzionano già i traguardi.
-   ══════════════════════════════════════════════════════════════════ */
-const CHALLENGES=[
-  {id:'trittico',title:'Il Trittico',desc:'Un assaggio: leggi 3 grandi classici.',target:3},
-  {id:'decalogo',title:'Il Decalogo',desc:'Dieci pietre miliari della letteratura.',target:10},
-  {id:'odissea2026',title:'Odissea 2026',desc:'La grande sfida: 12 classici in un anno.',target:12},
-];
-const LS_SFIDE='aeterna_sfide';
-let acceptedCache={};
-function getAccepted(){return acceptedCache;}
-function readLocalAccepted(){try{return JSON.parse(localStorage.getItem(LS_SFIDE))||{};}catch{return{};}}
-function writeLocalAccepted(obj){localStorage.setItem(LS_SFIDE,JSON.stringify(obj));}
-function totalLetti(){return Object.values(getLibrary()).filter(e=>e.stato==='letto').length;}
-function completedChallenges(){
-  const acc=getAccepted();
-  const letti=totalLetti();
-  return CHALLENGES.filter(c=>acc[c.id]&&letti>=c.target).length;
-}
-function toggleChallenge(id){
-  const eraAccettata=!!acceptedCache[id];
-  if(eraAccettata)delete acceptedCache[id];else acceptedCache[id]=true;
-  renderSfide();
-  renderProfilo();
-  if(currentUser){
-    const req=eraAccettata
-      ? apiFetch('/api/sfide/'+encodeURIComponent(id),{method:'DELETE'})
-      : apiFetch('/api/sfide',{method:'POST',body:JSON.stringify({sfida_id:id})});
-    req.catch(err=>console.error('toggleChallenge',err));
-  }else{
-    writeLocalAccepted(acceptedCache);
-  }
-}
-
-/* ══════════════════════════════════════════════════════════════════
    MIGRAZIONE DATI OSPITE → ACCOUNT
    ══════════════════════════════════════════════════════════════════
    Dopo login o registrazione, prima che loadUserData() sostituisca le
@@ -2471,7 +2461,6 @@ function toggleChallenge(id){
    leggiamo di nuovo e, se presenti, offriamo di importarli:
    - libri: aggiunti solo se non già presenti nell'account (non si
      sovrascrive mai uno stato già impostato lato server)
-   - sfide accettate: aggiunte solo se non già accettate
    - obiettivo: importato solo se l'account è ancora al valore di
      default (12) e quello locale è diverso, per non sovrascrivere
      una scelta già fatta sull'account
@@ -2485,22 +2474,19 @@ let pendingMigration=null;
 
 function offerGuestMigration(){
   const localLib=readLocalLibrary();
-  const localAcc=readLocalAccepted();
   const localNote=readLocalScriptorium();
   const rawGoal=localStorage.getItem(LS_GOAL);
   const localGoal=rawGoal?parseInt(rawGoal):null;
 
   const nLibri=Object.keys(localLib).length;
-  const nSfide=Object.keys(localAcc).length;
   const nNote=localNote.length;
   const goalDiverso=!!(localGoal&&localGoal!==12&&localGoal!==goalValue);
 
-  if(!nLibri&&!nSfide&&!nNote&&!goalDiverso)return; // niente da migrare
+  if(!nLibri&&!nNote&&!goalDiverso)return; // niente da migrare
 
-  pendingMigration={localLib,localAcc,localNote,localGoal};
+  pendingMigration={localLib,localNote,localGoal};
   const parti=[];
   if(nLibri)parti.push(`${nLibri} ${nLibri===1?'libro':'libri'} in libreria`);
-  if(nSfide)parti.push(`${nSfide} ${nSfide===1?'sfida accettata':'sfide accettate'}`);
   if(nNote)parti.push(`${nNote} ${nNote===1?'nota':'note'} nello Scriptorium`);
   if(goalDiverso)parti.push(`un obiettivo di lettura personalizzato (${localGoal})`);
   document.getElementById('migrateSub').textContent=
@@ -2510,7 +2496,6 @@ function offerGuestMigration(){
 
 function dismissGuestData(){
   localStorage.removeItem(LS_LIB);
-  localStorage.removeItem(LS_SFIDE);
   localStorage.removeItem(LS_GOAL);
   localStorage.removeItem(LS_SCRIPTORIUM);
   pendingMigration=null;
@@ -2518,7 +2503,7 @@ function dismissGuestData(){
 
 async function importGuestData(){
   if(!pendingMigration)return;
-  const{localLib,localAcc,localNote,localGoal}=pendingMigration;
+  const{localLib,localNote,localGoal}=pendingMigration;
 
   const existingLib=getLibrary();
   for(const[id,e]of Object.entries(localLib)){
@@ -2529,15 +2514,6 @@ async function importGuestData(){
       })});
       existingLib[id]=e;
     }catch(err){console.error('importGuestData: libro',id,err);}
-  }
-
-  const existingAcc=getAccepted();
-  for(const id of Object.keys(localAcc)){
-    if(existingAcc[id])continue;
-    try{
-      await apiFetch('/api/sfide',{method:'POST',body:JSON.stringify({sfida_id:id})});
-      existingAcc[id]=true;
-    }catch(err){console.error('importGuestData: sfida',id,err);}
   }
 
   for(const n of(localNote||[])){
@@ -2574,48 +2550,11 @@ document.getElementById('migrateConfirm').addEventListener('click',async()=>{
   document.getElementById('migrateOverlay').classList.remove('open');
   btn.disabled=false;btn.textContent='Importa nel mio account';
 });
-function renderSfide(){
-  const list=document.getElementById('challengesList');
-  if(!list)return;
-  const acc=getAccepted();
-  const letti=totalLetti();
-  list.innerHTML=CHALLENGES.map(c=>{
-    const accepted=!!acc[c.id];
-    const current=Math.min(letti,c.target);
-    const completed=accepted&&current>=c.target;
-    const pct=(current/c.target*100).toFixed(0);
-    const progress=accepted?`
-      <div class="challenge-progress">
-        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <span>${current} / ${c.target} letti</span>
-      </div>`:'';
-    const btn=completed
-      ? `<button class="btn btn-outline" disabled>✓ Completata</button>`
-      : accepted
-        ? `<button class="btn btn-outline" data-toggle="${c.id}">Abbandona</button>`
-        : `<button class="btn btn-gold" data-toggle="${c.id}">Accetta la sfida</button>`;
-    return `
-    <div class="challenge-row${completed?' completed':''}">
-      <div class="challenge-text">
-        <h3>${c.title}</h3>
-        <p>${c.desc}</p>
-        ${progress}
-      </div>
-      ${btn}
-    </div>`;
-  }).join('');
-}
-document.getElementById('challengesList').addEventListener('click',e=>{
-  const btn=e.target.closest('[data-toggle]');
-  if(!btn)return;
-  toggleChallenge(btn.dataset.toggle);
-});
-
 /* ══════════════════════════════════════════════════════════════════
    SCRIPTORIUM — diario personale privato: citazioni, recensioni,
    riflessioni. A differenza di Agorà è sempre privato (niente lettura
    pubblica), quindi per gli ospiti vive solo in localStorage su questo
-   dispositivo, esattamente come libreria/sfide/obiettivo, e rientra
+   dispositivo, esattamente come libreria/obiettivo, e rientra
    nello stesso flusso di migrazione all'account descritto più sotto.
    Ogni nota è {id, tipo, book_id, titolo_libro, autore_libro,
    cover_libro, titolo, testo, creato_il}. Per gli ospiti l'id è
@@ -2798,7 +2737,7 @@ document.getElementById('scriptoriumLoginLink')?.addEventListener('click',e=>{e.
    libreria (stato==='letto'), incrociati con due mappe curate a mano:
    PAESI (quali libri "appartengono" a quale nazione/continente) ed
    EPISTOLARIUM_CARDE (quale libro chiave sblocca la cartolina di quale
-   autore). Solo i libri già presenti in BOOKS (Lapides Miliarii) sono
+   autore). Solo i libri già presenti in BOOKS sono
    collegabili: le scoperte fatte su Alexandria non hanno una nazione
    assegnata, non essendo curate a mano.
 
@@ -2900,16 +2839,21 @@ document.getElementById('tabellariumTabs').addEventListener('click',e=>{
   renderTabellarium();
 });
 
+function stampAngle(id){
+  let h=0;for(let i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))>>>0;
+  return(h%9)-4; // piccola rotazione -4°..4°, coerente per paese, come un timbro dato a mano
+}
+
 function renderPassaporto(){
   const wrap=document.getElementById('tabellariumContent');
   if(!wrap)return;
   const lib=getLibrary();
 
-  const chipsHTML=CONTINENTI.map(c=>{
+  const tabsHTML=CONTINENTI.map(c=>{
     const haPaesi=PAESI.some(p=>p.continente===c.id);
     const completo=haPaesi&&continenteCompletato(c.id,lib);
-    return `<button class="continent-chip${c.id===tabellariumContinente?' active':''}" data-continente="${c.id}"${haPaesi?'':' style="opacity:.45"'}>
-      <span class="cc-ico">${c.icona}</span>${c.nome}${completo?'<span class="cc-trophy">🏆</span>':''}
+    return `<button class="passport-tab${c.id===tabellariumContinente?' active':''}" data-continente="${c.id}"${haPaesi?'':' disabled style="opacity:.4;cursor:default"'}>
+      <span>${c.icona}</span>${c.nome}${completo?'<span class="pt-trophy">🏅</span>':''}
     </button>`;
   }).join('');
 
@@ -2917,12 +2861,25 @@ function renderPassaporto(){
   const completo=continenteCompletato(tabellariumContinente,lib);
   const continenteNome=CONTINENTI.find(c=>c.id===tabellariumContinente)?.nome||'';
 
-  const noteHTML=completo?`<div class="continent-complete-note"><span>🏆</span><span>Premiazione Consolare: hai completato tutti i timbri d\u2019oro di ${continenteNome}!</span></div>`:'';
+  const noteHTML=completo?`<div class="passport-seal-note"><span>🏅</span><span>Premiazione Consolare: hai completato tutti i timbri d\u2019oro di ${continenteNome}!</span></div>`:'';
 
   const grigliaHTML=paesi.length?`<div class="stamp-grid">${paesi.map(p=>stampCardHTML(p,lib)).join('')}</div>`
-    :`<div class="alex-state">Nessun paese ancora aggiunto in questo continente.</div>`;
+    :`<p style="color:#7a684a;font-style:italic;font-size:.9rem">Nessun paese ancora aggiunto in questo continente.</p>`;
 
-  wrap.innerHTML=`<div class="continent-row">${chipsHTML}</div>${noteHTML}${grigliaHTML}`;
+  wrap.innerHTML=`
+    <div class="passport-cover">
+      <div class="passport-emblem">📖</div>
+      <div class="passport-cover-text">
+        <div class="passport-cover-eyebrow">Repubblica dei Lettori</div>
+        <div class="passport-cover-title">Passaporto Letterario</div>
+      </div>
+      <div class="passport-cover-serial">N. AET-000001</div>
+    </div>
+    <div class="passport-page">
+      <div class="passport-tabs">${tabsHTML}</div>
+      ${noteHTML}
+      ${grigliaHTML}
+    </div>`;
 
   // Le copertine dei libri nel paese espanso vanno caricate dopo l'inserimento nel DOM
   const espanso=paesi.find(p=>p.id===tabellariumPaeseEspanso);
@@ -2938,37 +2895,45 @@ function stampCardHTML(paese,lib){
   const sogliaOro=Math.min(3,paese.libri.length);
   const pct=Math.min(100,(letti/sogliaOro*100)).toFixed(0);
   const tierLabel=tier==='oro'?"Timbro d'oro":tier==='bronzo'?'Timbro di bronzo':'Nessun timbro ancora';
-  const sealIcon=tier==='oro'?'★':tier==='bronzo'?'✦':'✦';
   const espanso=paese.id===tabellariumPaeseEspanso;
+  const rot=stampAngle(paese.id);
 
-  const bookListHTML=espanso?(()=>{
-    const books=paese.libri.map(id=>BOOKS.find(b=>b.id===id)).filter(Boolean);
-    return `<div class="stamp-books" onclick="event.stopPropagation()">
-      <div class="book-grid">${books.map(b=>bookCardHTML(b,lib[b.id]?.stato)).join('')}</div>
+  const sealHTML=`
+    <div class="stamp-seal ${tier}" style="transform:rotate(${rot}deg)">
+      <span class="ss-flag">${paese.bandiera}</span>
+      <span class="ss-nome">${paese.nome}</span>
     </div>`;
-  })():'';
 
-  return `
-    <div class="stamp-card${espanso?' expanded':''}" data-paese="${paese.id}">
-      <div class="stamp-top">
-        <div class="stamp-seal ${tier}">${paese.bandiera||sealIcon}</div>
-        <div>
-          <div class="stamp-name">${paese.nome}</div>
-          <div class="stamp-tier-label${tier!=='none'?' on-'+tier:''}">${tierLabel}</div>
+  if(espanso){
+    const books=paese.libri.map(id=>BOOKS.find(b=>b.id===id)).filter(Boolean);
+    return `
+      <div class="stamp-card expanded" data-paese="${paese.id}">
+        <div class="stamp-expanded-head">
+          ${sealHTML}
+          <div>
+            <div class="stamp-tier-label${tier!=='none'?' on-'+tier:''}">${tierLabel}</div>
+            <div class="stamp-progress-mini" style="margin-top:8px"><i style="width:${pct}%"></i></div>
+            <div style="font-size:.72rem;color:#7a684a;margin-top:6px">${letti} / ${sogliaOro} letti</div>
+          </div>
         </div>
-      </div>
-      <div class="stamp-progress-row">
-        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <span>${letti} / ${sogliaOro} letti</span>
-      </div>
-      ${bookListHTML}
+        <div class="stamp-books" onclick="event.stopPropagation()">
+          <div class="book-grid">${books.map(b=>bookCardHTML(b,lib[b.id]?.stato)).join('')}</div>
+        </div>
+      </div>`;
+  }
+  return `
+    <div class="stamp-card" data-paese="${paese.id}">
+      ${sealHTML}
+      <div class="stamp-tier-label${tier!=='none'?' on-'+tier:''}">${tierLabel}</div>
+      <div class="stamp-progress-mini"><i style="width:${pct}%"></i></div>
     </div>`;
 }
 
 document.getElementById('tabellariumContent').addEventListener('click',e=>{
-  const chip=e.target.closest('[data-continente]');
-  if(chip){
-    tabellariumContinente=chip.dataset.continente;
+  const tab=e.target.closest('[data-continente]');
+  if(tab){
+    if(tab.disabled)return;
+    tabellariumContinente=tab.dataset.continente;
     tabellariumPaeseEspanso=null;
     renderPassaporto();
     return;
@@ -3000,11 +2965,13 @@ function renderEpistolarium(){
     if(unlocked){
       return `
       <div class="postcard-card unlocked" data-postcard="${c.id}">
-        <div class="postcard-thumb pc-tone-${c.tono}">
-          <span class="postcard-thumb-ico">${c.icona}</span>
+        <div class="postcard-frame">
+          <div class="postcard-thumb pc-tone-${c.tono}">
+            <span class="postcard-thumb-ico">${c.icona}</span>
+          </div>
           <span class="postcard-stamp-corner">${c.francobollo}</span>
         </div>
-        <div class="postcard-body">
+        <div class="postcard-caption">
           <h3>${c.autore}</h3>
           <p>${c.luogo}</p>
         </div>
@@ -3012,28 +2979,52 @@ function renderEpistolarium(){
     }
     return `
       <div class="postcard-card locked">
-        <div class="postcard-thumb pc-tone-${c.tono}">
-          <div class="postcard-lock"><span>🔒</span></div>
+        <div class="postcard-frame">
+          <div class="postcard-thumb pc-tone-${c.tono}">
+            <div class="postcard-lock"><span>🔒</span></div>
+          </div>
         </div>
         <p class="postcard-hint">Leggi «${libroTitolo}» per ricevere questa cartolina.</p>
       </div>`;
   }).join('')}</div>`;
 }
 
+function iniziali(nome){
+  return nome.split(' ').map(w=>w[0]).filter(Boolean).join('.').toUpperCase()+'.';
+}
+
 function openPostcard(id){
   const card=EPISTOLARIUM_CARDE.find(c=>c.id===id);
   if(!card)return;
+  const libroTitolo=BOOKS.find(b=>b.id===card.libroChiave)?.t||card.libroChiave;
   document.getElementById('postcardFront').innerHTML=`
     <div class="postcard-front-scene pc-tone-${card.tono}">
       <span class="postcard-front-ico">${card.icona}</span>
-      <span class="postcard-front-luogo">${card.luogo}</span>
     </div>`;
   document.getElementById('postcardBack').innerHTML=`
-    <div>
-      <div class="postcard-back-luogo">Da ${card.autore}</div>
-      <div class="postcard-back-testo">${card.retro}</div>
-    </div>
-    <div class="postcard-back-cit">«${card.citazione}»</div>`;
+    <div class="postcard-back-inner">
+      <div class="pb-row-top">
+        <div class="pb-return">Cartolina da<br>${card.luogo}</div>
+        <div class="pb-stampzone">
+          <div class="pb-postmark">${iniziali(card.autore)}</div>
+          <div class="pb-stampbox">${card.francobollo}</div>
+        </div>
+      </div>
+      <div class="pb-title">Post Card</div>
+      <div class="pb-columns">
+        <div class="pb-message">
+          <p>${card.retro}</p>
+          <p class="pb-firma">— ${card.autore}</p>
+        </div>
+        <div class="pb-address">
+          <div class="pb-address-to">A</div>
+          <div class="pb-address-line">chi ha letto</div>
+          <div class="pb-address-line">«${libroTitolo}»</div>
+          <div class="pb-address-line">Biblioteca Aeterna</div>
+          <p class="pb-cit">«${card.citazione}»</p>
+        </div>
+      </div>
+    </div>`;
   const flip=document.getElementById('postcardFlip');
   flip.classList.remove('flipped');
   document.getElementById('postcardFlipBtn').textContent='Gira la cartolina →';
@@ -3181,32 +3172,26 @@ document.getElementById('newThreadSubmit').addEventListener('click',async()=>{
    quelli reali del backend (loadUserData). L'Agorà è sempre pubblica
    quindi si carica in parallelo, indipendentemente dal login. */
 function renderAllViews(){
-  renderLapidesProgress();
-  renderBookGrid();
   renderPantheon();
   renderProfilo();
-  renderSfide();
   if(typeof renderTabellarium==='function')renderTabellarium();
   if(typeof renderAlexResults==='function')renderAlexResults();
   if(typeof renderScriptorium==='function')renderScriptorium();
+  if(typeof renderReadingHero==='function')renderReadingHero();
 }
 
 function loadGuestData(){
   libreriaCache=readLocalLibrary();
   goalValue=readLocalGoal();
-  acceptedCache=readLocalAccepted();
   scriptoriumCache=readLocalScriptorium();
 }
 
 async function loadUserData(){
   try{
-    const[libRows,sfideIds]=await Promise.all([apiFetch('/api/libreria'),apiFetch('/api/sfide')]);
+    const libRows=await apiFetch('/api/libreria');
     const lib={};
     libRows.forEach(r=>{lib[r.book_id]={stato:r.stato,titolo:r.titolo,autore:r.autore,anno:r.anno,cover:r.cover};});
     libreriaCache=lib;
-    const acc={};
-    sfideIds.forEach(id=>acc[id]=true);
-    acceptedCache=acc;
     goalValue=currentUser.obiettivo_annuale||12;
   }catch(err){
     console.error('loadUserData',err);
@@ -3223,6 +3208,7 @@ function checkResetLink(){
 async function initApp(){
   renderQuote();
   renderReviews();
+  sessioniCache=readLocalSessioni(); // sempre locale al dispositivo, con o senza login
   loadGuestData();
   renderAllViews();
   loadThreads();
