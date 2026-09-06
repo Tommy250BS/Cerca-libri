@@ -243,6 +243,31 @@ def init_db():
                 );
             """)
 
+            # Scriptorium: diario personale privato. A differenza di Agorà
+            # (forum pubblico) qui ogni riga è visibile solo al suo autore,
+            # quindi niente autore_nome "congelato" — non serve mostrare la
+            # nota a nessun altro. Le note possono essere libere (book_id
+            # NULL, come un diario) oppure agganciate a un libro: in tal
+            # caso titolo/autore/cover del libro sono denormalizzati come in
+            # "libreria", perché una nota può riferirsi anche a un'opera
+            # trovata su Alexandria (non presente in nessun catalogo curato
+            # lato server).
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS scriptorium (
+                    id SERIAL PRIMARY KEY,
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
+                    tipo VARCHAR(16) NOT NULL CHECK (tipo IN ('nota','citazione','recensione','riflessione')),
+                    book_id TEXT,
+                    titolo_libro TEXT,
+                    autore_libro TEXT,
+                    cover_libro TEXT,
+                    titolo TEXT,
+                    testo TEXT NOT NULL,
+                    creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
             # Reset password: token monouso con scadenza (stessa logica del
             # vecchio app.py).
             cur.execute("""
@@ -871,6 +896,97 @@ def rispondi_discussione(did):
     row = cur.fetchone()
     db.commit()
     return jsonify(dict(row))
+
+# ── API Scriptorium (diario personale: citazioni, recensioni, riflessioni) ──
+# A differenza di Agorà, qui login_richiesto vale anche in lettura: è lo
+# "spazio intimo" dell'utente descritto nel documento di gamification, non
+# ha senso restituire dati di un utente a un altro né a un ospite.
+
+SCRIPTORIUM_TIPI = ("nota", "citazione", "recensione", "riflessione")
+
+def _pulisci_scriptorium_input(d):
+    """Valida e normalizza i campi comuni a creazione/modifica di una nota.
+    Ritorna (valori, None) oppure (None, messaggio_errore)."""
+    tipo = (d.get("tipo") or "").strip()
+    if tipo not in SCRIPTORIUM_TIPI:
+        return None, "Tipo non valido"
+    testo, err = _valida_testo(d.get("testo"), "Il testo", 5000)
+    if err:
+        return None, err
+    titolo = (d.get("titolo") or "").strip()[:200] or None
+    return {"tipo": tipo, "testo": testo, "titolo": titolo}, None
+
+@app.route("/api/scriptorium", methods=["GET"])
+@login_richiesto
+def get_scriptorium():
+    u = utente_corrente()
+    rows = get_db().execute(
+        "SELECT * FROM scriptorium WHERE utente_id=%s ORDER BY creato_il DESC",
+        (u["id"],)
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/scriptorium", methods=["POST"])
+@login_richiesto
+def crea_nota_scriptorium():
+    u = utente_corrente()
+    d = request.get_json() or {}
+    valori, err = _pulisci_scriptorium_input(d)
+    if err:
+        return jsonify({"error": err}), 400
+
+    book_id       = (d.get("book_id") or "").strip() or None
+    titolo_libro  = (d.get("titolo_libro") or "").strip() or None
+    autore_libro  = (d.get("autore_libro") or "").strip() or None
+    cover_libro   = (d.get("cover_libro") or "").strip() or None
+
+    db = get_db()
+    cur = db.execute(
+        """
+        INSERT INTO scriptorium
+            (utente_id, tipo, book_id, titolo_libro, autore_libro, cover_libro, titolo, testo)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *
+        """,
+        (u["id"], valori["tipo"], book_id, titolo_libro, autore_libro, cover_libro,
+         valori["titolo"], valori["testo"])
+    )
+    row = dict(cur.fetchone())
+    db.commit()
+    return jsonify(row)
+
+@app.route("/api/scriptorium/<int:nid>", methods=["PUT"])
+@login_richiesto
+def modifica_nota_scriptorium(nid):
+    u = utente_corrente()
+    d = request.get_json() or {}
+    db = get_db()
+    riga = db.execute(
+        "SELECT id FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"])
+    ).fetchone()
+    if not riga:
+        return jsonify({"error": "Nota non trovata"}), 404
+
+    valori, err = _pulisci_scriptorium_input(d)
+    if err:
+        return jsonify({"error": err}), 400
+
+    db.execute(
+        "UPDATE scriptorium SET tipo=%s, titolo=%s, testo=%s, aggiornato_il=CURRENT_TIMESTAMP "
+        "WHERE id=%s",
+        (valori["tipo"], valori["titolo"], valori["testo"], nid)
+    )
+    db.commit()
+    row = db.execute("SELECT * FROM scriptorium WHERE id=%s", (nid,)).fetchone()
+    return jsonify(dict(row))
+
+@app.route("/api/scriptorium/<int:nid>", methods=["DELETE"])
+@login_richiesto
+def elimina_nota_scriptorium(nid):
+    u = utente_corrente()
+    db = get_db()
+    db.execute("DELETE FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"]))
+    db.commit()
+    return jsonify({"ok": True})
 
 # ── Static / avvio ────────────────────────────────────────────────────────
 
