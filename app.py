@@ -210,6 +210,39 @@ def init_db():
                 );
             """)
 
+            # Motore economico (Aurei + XP/livello + streak) — trasversale a
+            # tutte le feature di gamification future: oggi lo alimenta solo
+            # Ephemeris, domani anche Tabellarium/Epistolarium/Atelier. Un
+            # solo record per utente, niente storico delle transazioni: se
+            # servirà davvero (es. un "estratto conto" in Scriptorium) si
+            # aggiungerà una tabella a parte, per ora sarebbe complessità
+            # senza una vista che la usi.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS economia (
+                    utente_id INTEGER PRIMARY KEY REFERENCES utenti(id) ON DELETE CASCADE,
+                    aurei INTEGER NOT NULL DEFAULT 0,
+                    xp INTEGER NOT NULL DEFAULT 0,
+                    streak_giorni INTEGER NOT NULL DEFAULT 0,
+                    ultimo_giorno TIMESTAMP
+                );
+            """)
+
+            # Ephemeris: una riga per utente per giorno solare (UTC), così
+            # "hai già risposto oggi?" è una semplice UNIQUE invece di dover
+            # tenere uno stato a parte.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS ephemeris_risposte (
+                    id SERIAL PRIMARY KEY,
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
+                    giorno DATE NOT NULL,
+                    opzione_scelta INTEGER NOT NULL,
+                    corretto BOOLEAN NOT NULL,
+                    aurei_guadagnati INTEGER NOT NULL,
+                    creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (utente_id, giorno)
+                );
+            """)
+
             # Reset password: token monouso con scadenza (stessa logica del
             # vecchio app.py).
             cur.execute("""
@@ -249,6 +282,65 @@ def _utcnow():
     restituiscono comunque datetime naive — per confrontarle correttamente
     serve restare naive anche qui, non passare ad oggetti timezone-aware."""
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+# ── Motore economico (Aurei / XP / Livelli / Streak) ────────────────────
+# Scheletro pensato per essere "chiamato" da più feature senza che queste
+# sappiano nulla di come i livelli sono calcolati: oggi solo Ephemeris usa
+# accredita_economia(), domani lo faranno anche Tabellarium/Epistolarium.
+# I nomi dei livelli sono provvisori (vedi documento "Sistema di Valuta ed
+# Esperienza") — le soglie XP sono una prima stima da tarare quando ci
+# saranno più fonti di XP oltre a Ephemeris.
+
+LIVELLI = [
+    (0,   "Discepolo"),
+    (50,  "Scriba"),
+    (200, "Philosophus"),
+    (500, "Custode della Biblioteca"),
+]
+
+def livello_da_xp(xp):
+    titolo = LIVELLI[0][1]
+    for soglia, nome in LIVELLI:
+        if xp >= soglia:
+            titolo = nome
+    return titolo
+
+def get_o_crea_economia(db, utente_id):
+    row = db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
+    if row:
+        return row
+    db.execute("INSERT INTO economia (utente_id) VALUES (%s) ON CONFLICT DO NOTHING", (utente_id,))
+    db.commit()
+    return db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
+
+def accredita_economia(db, utente_id, aurei=0, xp=0, nuovo_streak=None):
+    """Accredita aurei/xp (sempre in aggiunta a quelli esistenti) ed
+    eventualmente aggiorna lo streak (valore assoluto, se fornito — non
+    incrementale, perché la logica di quando resettarlo/incrementarlo
+    dipende dalla feature chiamante, non da questa funzione generica).
+    Ritorna la riga aggiornata."""
+    get_o_crea_economia(db, utente_id)
+    if nuovo_streak is None:
+        db.execute(
+            "UPDATE economia SET aurei=aurei+%s, xp=xp+%s WHERE utente_id=%s",
+            (aurei, xp, utente_id)
+        )
+    else:
+        db.execute(
+            "UPDATE economia SET aurei=aurei+%s, xp=xp+%s, streak_giorni=%s, "
+            "ultimo_giorno=CURRENT_TIMESTAMP WHERE utente_id=%s",
+            (aurei, xp, nuovo_streak, utente_id)
+        )
+    db.commit()
+    return db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
+
+def _serializza_economia(row):
+    return {
+        "aurei": row["aurei"],
+        "xp": row["xp"],
+        "livello": livello_da_xp(row["xp"]),
+        "streak_giorni": row["streak_giorni"],
+    }
 
 # ── API Auth ─────────────────────────────────────────────────────────────
 
@@ -410,6 +502,187 @@ def imposta_obiettivo():
     db.execute("UPDATE utenti SET obiettivo_annuale=%s WHERE id=%s", (obiettivo, u["id"]))
     db.commit()
     return jsonify({"ok": True, "obiettivo_annuale": obiettivo})
+
+# ── API Economia (Aurei / XP / Livello / Streak) ─────────────────────────
+
+@app.route("/api/economia")
+@login_richiesto
+def get_economia():
+    u = utente_corrente()
+    row = get_o_crea_economia(get_db(), u["id"])
+    return jsonify(_serializza_economia(row))
+
+# ── Ephemeris (citazione del giorno + quiz) ──────────────────────────────
+# Banco statico di domande, sul modello delle QUOTES già presenti nel
+# frontend per la Citazione del Giorno: qui in più c'è una domanda a
+# risposta multipla, la spiegazione da rivelare dopo, e un giro di Aurei.
+# La selezione è deterministica per giorno solare (stesso seed usato da
+# renderQuote() in index.html) così tutti vedono lo stesso enigma nello
+# stesso giorno — nessuna tabella "domanda del giorno" da popolare a mano.
+#
+# NOTA: la "ricompensa doppia" del giorno 7 descritta nel documento di
+# gamification è ambigua nel testo originale (doppia rispetto a cosa?).
+# Qui è implementata come moltiplicatore x2 sulla base (quindi +20 invece
+# di +10), applicato a ogni multiplo di 7 di streak consecutivo — è una
+# scelta arbitraria per avere uno scheletro funzionante, da confermare o
+# correggere quando si disegnerà per bene la ricompensa "Enigma Aureo".
+
+EPHEMERIS_BANCO = [
+    {
+        "testo": "Tutte le famiglie felici si somigliano; ogni famiglia infelice è infelice a modo suo.",
+        "domanda": "Da quale opera è tratto questo incipit?",
+        "opzioni": ["Anna Karenina", "Guerra e pace", "Delitto e castigo", "I fratelli Karamazov"],
+        "corretta": 0,
+        "spiegazione": "È l'incipit di «Anna Karenina» di Lev Tolstoj (1877).",
+    },
+    {
+        "testo": "È una verità universalmente riconosciuta che uno scapolo in possesso di una vistosa fortuna debba essere in cerca di moglie.",
+        "domanda": "Chi ha scritto queste parole?",
+        "opzioni": ["Charlotte Brontë", "Jane Austen", "George Eliot", "Elizabeth Gaskell"],
+        "corretta": 1,
+        "spiegazione": "È l'incipit di «Orgoglio e pregiudizio» (1813) di Jane Austen.",
+    },
+    {
+        "testo": "Chiamatemi Ismaele.",
+        "domanda": "Da quale romanzo è tratta questa celebre prima riga?",
+        "opzioni": ["L'isola del tesoro", "Moby-Dick", "Robinson Crusoe", "Il vecchio e il mare"],
+        "corretta": 1,
+        "spiegazione": "È l'incipit di «Moby-Dick» (1851) di Herman Melville.",
+    },
+    {
+        "testo": "Il paradiso, per me, ha sempre avuto la forma di una biblioteca.",
+        "domanda": "Chi ha scritto questa celebre citazione?",
+        "opzioni": ["Umberto Eco", "Italo Calvino", "Jorge Luis Borges", "Gabriel García Márquez"],
+        "corretta": 2,
+        "spiegazione": "È una citazione di Jorge Luis Borges, tratta da «Elogio dell'ombra».",
+    },
+    {
+        "testo": "Molti anni dopo, davanti al plotone di esecuzione, il colonnello Aureliano Buendía si sarebbe ricordato di quel remoto pomeriggio in cui suo padre lo aveva condotto a conoscere il ghiaccio.",
+        "domanda": "Da quale romanzo è tratto questo incipit?",
+        "opzioni": ["L'amore ai tempi del colera", "Cent'anni di solitudine", "Cronaca di una morte annunciata", "Il generale nel suo labirinto"],
+        "corretta": 1,
+        "spiegazione": "È l'incipit di «Cent'anni di solitudine» (1967) di Gabriel García Márquez.",
+    },
+    {
+        "testo": "Era la migliore e insieme la peggiore delle epoche.",
+        "domanda": "Da quale romanzo è tratto questo celebre incipit?",
+        "opzioni": ["Grandi speranze", "Oliver Twist", "Racconto di due città", "David Copperfield"],
+        "corretta": 2,
+        "spiegazione": "È l'incipit (nella traduzione italiana) di «Racconto di due città» (1859) di Charles Dickens.",
+    },
+    {
+        "testo": "Qualcuno doveva aver calunniato Josef K., perché una mattina, senza che avesse fatto nulla di male, fu arrestato.",
+        "domanda": "Da quale romanzo è tratto questo incipit?",
+        "opzioni": ["La metamorfosi", "Il processo", "Il castello", "America"],
+        "corretta": 1,
+        "spiegazione": "È l'incipit de «Il processo» di Franz Kafka, pubblicato postumo nel 1925.",
+    },
+]
+
+def ephemeris_di_oggi(giorno):
+    seed = giorno.year * 10000 + giorno.month * 100 + giorno.day
+    return EPHEMERIS_BANCO[seed % len(EPHEMERIS_BANCO)]
+
+def _moltiplicatore_streak(streak):
+    if streak >= 7:
+        return 2.0
+    if streak >= 3:
+        return 1.5
+    return 1.0
+
+@app.route("/api/ephemeris/oggi")
+def get_ephemeris_oggi():
+    """Pubblico anche per gli ospiti: possono leggere la domanda, ma senza
+    account non ha senso accreditare aurei/streak a nessuno, quindi il
+    frontend mostra le opzioni come cliccabili solo se loggato. Se l'utente
+    ha già risposto oggi, restituiamo anche l'esito, così il quiz non è
+    "rifacibile" ricaricando la pagina."""
+    oggi = _utcnow().date()
+    domanda = ephemeris_di_oggi(oggi)
+    out = {
+        "testo": domanda["testo"],
+        "domanda": domanda["domanda"],
+        "opzioni": domanda["opzioni"],
+        "gia_risposto": False,
+    }
+    u = utente_corrente()
+    if not u:
+        return jsonify(out)
+
+    riga = get_db().execute(
+        "SELECT * FROM ephemeris_risposte WHERE utente_id=%s AND giorno=%s",
+        (u["id"], oggi)
+    ).fetchone()
+    if riga:
+        out.update({
+            "gia_risposto": True,
+            "opzione_scelta": riga["opzione_scelta"],
+            "corretto": riga["corretto"],
+            "corretta": domanda["corretta"],
+            "spiegazione": domanda["spiegazione"],
+            "aurei_guadagnati": riga["aurei_guadagnati"],
+        })
+    return jsonify(out)
+
+@app.route("/api/ephemeris/rispondi", methods=["POST"])
+@login_richiesto
+def rispondi_ephemeris():
+    u = utente_corrente()
+    d = request.get_json() or {}
+    try:
+        scelta = int(d.get("opzione"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Opzione non valida"}), 400
+
+    oggi = _utcnow().date()
+    domanda = ephemeris_di_oggi(oggi)
+    if scelta < 0 or scelta >= len(domanda["opzioni"]):
+        return jsonify({"error": "Opzione non valida"}), 400
+
+    db = get_db()
+    esiste = db.execute(
+        "SELECT id FROM ephemeris_risposte WHERE utente_id=%s AND giorno=%s",
+        (u["id"], oggi)
+    ).fetchone()
+    if esiste:
+        return jsonify({"error": "Hai già risposto all'enigma di oggi."}), 409
+
+    economia = get_o_crea_economia(db, u["id"])
+    corretto = (scelta == domanda["corretta"])
+
+    ieri = oggi - timedelta(days=1)
+    streak_precedente = economia["streak_giorni"] or 0
+    ultimo = economia["ultimo_giorno"].date() if economia["ultimo_giorno"] else None
+
+    if corretto:
+        nuovo_streak = streak_precedente + 1 if ultimo == ieri else 1
+        mult = _moltiplicatore_streak(nuovo_streak)
+        aurei = round(10 * mult)
+        xp = aurei
+    else:
+        nuovo_streak = 0
+        aurei = 2
+        xp = 1
+
+    db.execute(
+        """
+        INSERT INTO ephemeris_risposte (utente_id, giorno, opzione_scelta, corretto, aurei_guadagnati)
+        VALUES (%s, %s, %s, %s, %s)
+        """,
+        (u["id"], oggi, scelta, corretto, aurei)
+    )
+    db.commit()
+
+    riga_economia = accredita_economia(db, u["id"], aurei=aurei, xp=xp, nuovo_streak=nuovo_streak)
+
+    return jsonify({
+        "corretto": corretto,
+        "corretta": domanda["corretta"],
+        "spiegazione": domanda["spiegazione"],
+        "aurei_guadagnati": aurei,
+        "traguardo_speciale": corretto and nuovo_streak % 7 == 0,
+        "economia": _serializza_economia(riga_economia),
+    })
 
 # ── API Libreria personale (Lapides Miliarii / Alexandria / Profilo) ─────
 # Un solo stato per libro: 'in_lettura' | 'letto' | 'desiderio'. Il
