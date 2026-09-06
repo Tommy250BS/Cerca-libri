@@ -66,41 +66,27 @@ h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 
 /* ══════════════════════════════════════════════════════════════════
    SPLASH SCREEN — piuma che scrive "Biblioteca Aeterna" in corsivo,
-   poi la pagina viene "sfogliata": ruota in 3D attorno al bordo
-   sinistro (la costola del libro) rivelando l'app sotto, esattamente
-   come si gira una pagina reale.
+   poi apertura a tendina (come una copertina di libro) verso l'app.
    ══════════════════════════════════════════════════════════════════ */
 body.splash-lock{overflow:hidden}
 .splash{
   position:fixed;inset:0;z-index:3000;
-  background:transparent; /* l'opacità sta sulla pagina, non sul contenitore:
-    così, appena la pagina supera i 90° e sparisce, l'app sotto si vede subito */
-  perspective:2000px;
+  background:#0b0906;
 }
-.splash-page{
-  position:absolute;inset:0;
-  transform-origin:left center;
-  transform-style:preserve-3d;
-  backface-visibility:hidden;
+.splash-panel{
+  position:absolute;top:0;bottom:0;width:50%;
   background:
     radial-gradient(circle at 50% 42%,rgba(201,162,39,.07),transparent 60%),
     #0b0906;
-  box-shadow:0 0 0 rgba(0,0,0,0);
-  transition:transform 1.15s cubic-bezier(.65,.05,.36,1),box-shadow 1.15s ease;
+  transition:transform 1.05s cubic-bezier(.76,0,.24,1);
   will-change:transform;
 }
-.splash-page::after{
-  /* ombra che si addensa verso il bordo che si solleva, per dare
-     volume alla pagina mentre gira, come la luce che la lascia */
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(90deg,transparent 55%,rgba(0,0,0,.4) 100%);
-  opacity:0;transition:opacity 1.15s ease;
-  pointer-events:none;
-}
+.splash-panel-left{left:0;border-right:1px solid var(--line)}
+.splash-panel-right{right:0}
 .splash-content{
   position:relative;z-index:2;height:100%;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-  transition:opacity .5s ease .25s,transform .5s ease .25s;
+  transition:opacity .5s ease,transform .5s ease;
 }
 .splash-title-wrap{position:relative;display:inline-block}
 .splash-feather{
@@ -120,7 +106,7 @@ body.splash-lock{overflow:hidden}
 .splash-skip{
   position:absolute;right:28px;bottom:26px;z-index:2;
   color:var(--ink-3);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;
-  background:none;border:none;padding:8px;transition:color .15s,opacity .35s ease;
+  background:none;border:none;padding:8px;transition:color .15s;
 }
 .splash-skip:hover{color:var(--ink-2)}
 
@@ -151,21 +137,17 @@ body.splash-lock{overflow:hidden}
   100%{left:100%;transform:translateX(-30%) translateY(0) rotate(-10deg)}
 }
 
-/* Si sfoglia: la pagina ruota attorno alla costola sinistra e, passati
-   i 90°, sparisce (backface-visibility:hidden) rivelando l'app sotto. */
-.splash.opening .splash-page{
-  transform:rotateY(-130deg);
-  box-shadow:-50px 10px 70px rgba(0,0,0,.5);
-}
-.splash.opening .splash-page::after{opacity:1}
-.splash.opening .splash-content{opacity:0;transform:translateX(-8px)}
+/* Apertura a tendina: le due metà scorrono via, il contenuto sfuma */
+.splash.opening .splash-panel-left{transform:translateX(-100%)}
+.splash.opening .splash-panel-right{transform:translateX(100%)}
+.splash.opening .splash-content{opacity:0;transform:scale(.95)}
 .splash.opening .splash-skip{opacity:0;pointer-events:none}
 
 @media(prefers-reduced-motion:reduce){
   .splash.writing .splash-title,.splash.writing .splash-feather{animation:none}
   .splash-title{clip-path:none}
-  .splash-page{transition:opacity .4s ease}
-  .splash.opening .splash-page{transform:none;opacity:0;box-shadow:none}
+  .splash-panel{transition:opacity .4s ease}
+  .splash.opening .splash-panel-left,.splash.opening .splash-panel-right{transform:none;opacity:0}
 }
 /* ══════════════════════════════════════════════════════════════════
    NAV
@@ -215,6 +197,19 @@ body.splash-lock{overflow:hidden}
 .nav-links a.active::after{content:'';position:absolute;left:0;right:0;bottom:-4px;height:1px;background:var(--gold)}
 
 .nav-user{margin-left:auto;flex-shrink:0;position:relative}
+
+/* ── Widget Aurei/Livello — placeholder in attesa del redesign header
+   previsto negli appunti grafici (icona profilo+titolo a sx, saldo aurei
+   a dx). Per ora un pill minimale accanto all'area utente, così il motore
+   economico ha già una superficie visibile senza toccare il resto del
+   nav. ── */
+.economia-pill{display:none;align-items:center;gap:10px;padding:7px 14px;border:1px solid var(--line);font-size:.82rem;color:var(--ink-2);margin-right:14px;flex-shrink:0}
+.economia-pill.show{display:flex}
+.economia-pill .eco-aurei{color:var(--gold-2);font-weight:600;white-space:nowrap}
+.economia-pill .eco-livello{color:var(--ink-3);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.economia-pill .eco-streak{color:var(--gold);white-space:nowrap}
+@media(max-width:820px){.economia-pill .eco-livello{display:none}}
+@media(max-width:600px){.economia-pill{display:none!important}}
 
 /* ── Menu mobile: sotto i 940px .nav-links sparisce (vedi sopra), al
    suo posto un hamburger apre un pannello a tendina con gli stessi
@@ -326,6 +321,28 @@ body.splash-lock{overflow:hidden}
 }
 .quote-cite{color:var(--ink-3);font-size:.94rem}
 .quote-cite b{color:var(--gold-2);font-weight:500;font-style:italic;font-family:var(--serif);font-size:1.02rem}
+
+/* ══════════════════════════════════════════════════════════════════
+   EPHEMERIS — card del quiz giornaliero. Placeholder di gamification:
+   nessuna pergamena sigillata/animazione per ora, solo il loop
+   funzionale (domanda → risposta → esito → aurei/streak).
+   ══════════════════════════════════════════════════════════════════ */
+.ephemeris-card{border:1px solid var(--line);background:var(--gold-wash);padding:48px 44px}
+@media(max-width:720px){.ephemeris-card{padding:30px 24px}}
+.eph-quote{font-family:var(--serif);font-style:italic;font-size:1.25rem;color:var(--ink);margin:16px 0 18px;line-height:1.5}
+.eph-question{font-size:.86rem;color:var(--ink-2);margin-bottom:20px}
+.eph-options{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:640px){.eph-options{grid-template-columns:1fr}}
+.eph-option{padding:14px 18px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);text-align:left;font-size:.9rem;font-family:inherit;transition:border-color .15s,background .15s,color .15s}
+.eph-option:hover:not(:disabled){border-color:var(--gold)}
+.eph-option:disabled{cursor:default}
+.eph-option.correct{border-color:var(--gold);background:rgba(201,162,39,.16);color:var(--gold-2)}
+.eph-option.wrong{border-color:rgba(200,60,50,.4);color:#e28b82}
+.eph-result{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-2);font-size:.9rem;line-height:1.65}
+.eph-verdict{font-weight:600;color:var(--ink)}
+.eph-reward{color:var(--gold-2);font-weight:600}
+.eph-locked{color:var(--ink-3);font-style:italic;font-size:.88rem;margin-top:18px}
+.eph-locked a{color:var(--gold-2);font-weight:600;font-style:normal}
 
 /* ══════════════════════════════════════════════════════════════════
    COMMUNITY / TESTIMONIALS
@@ -663,21 +680,21 @@ body.splash-lock{overflow:hidden}
 
 <!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
 <div class="splash" id="splashScreen" aria-hidden="true">
-  <div class="splash-page" id="splashPage">
-    <div class="splash-content" id="splashContent">
-      <div class="splash-title-wrap">
-        <svg class="splash-feather" id="splashFeather" width="42" height="46" viewBox="0 0 24 26" fill="none" stroke="#c9a227" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-          <line x1="16" y1="8" x2="2" y2="22"/>
-          <line x1="17.5" y1="15" x2="9" y2="15"/>
-          <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
-          <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
-        </svg>
-        <h1 class="splash-title" id="splashTitle">Biblioteca Aeterna</h1>
-      </div>
+  <div class="splash-panel splash-panel-left"></div>
+  <div class="splash-panel splash-panel-right"></div>
+  <div class="splash-content" id="splashContent">
+    <div class="splash-title-wrap">
+      <svg class="splash-feather" id="splashFeather" width="42" height="46" viewBox="0 0 24 26" fill="none" stroke="#c9a227" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+        <line x1="16" y1="8" x2="2" y2="22"/>
+        <line x1="17.5" y1="15" x2="9" y2="15"/>
+        <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
+        <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
+      </svg>
+      <h1 class="splash-title" id="splashTitle">Biblioteca Aeterna</h1>
     </div>
-    <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
   </div>
+  <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
 </div>
 
 <!-- ═══════════════ NAV ═══════════════ -->
@@ -701,6 +718,7 @@ body.splash-lock{overflow:hidden}
       <a href="#" data-nav="sfide">Sfide</a>
       <a href="#" data-nav="agora">Agorà</a>
     </nav>
+    <div class="economia-pill" id="economiaWidget"></div>
     <div class="nav-user" id="navUser"><!-- popolato da JS --></div>
     <button class="nav-hamburger" id="navHamburger" aria-label="Apri il menu" aria-expanded="false" aria-controls="mobileMenu">
       <span></span><span></span><span></span>
@@ -764,6 +782,13 @@ body.splash-lock{overflow:hidden}
         <p class="eyebrow">Citazione del giorno</p>
         <p class="quote-text" id="quoteText">Caricamento…</p>
         <p class="quote-cite" id="quoteCite"></p>
+      </div>
+    </div>
+
+    <div class="wrap section" style="padding-top:0">
+      <div class="ephemeris-card">
+        <p class="eyebrow">Ephemeris · l'enigma del giorno</p>
+        <div id="ephemerisBody">Caricamento…</div>
       </div>
     </div>
 
@@ -1165,10 +1190,10 @@ body.splash-lock{overflow:hidden}
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.body.classList.add('splash-lock');
 
-  function turnPage(){
+  function openCurtain(){
     if(splash.classList.contains('opening'))return; // evita doppio trigger (skip + fine scrittura)
     splash.classList.add('opening');
-    const page=document.getElementById('splashPage');
+    const leftPanel=splash.querySelector('.splash-panel-left');
     const finish=()=>{
       splash.remove();
       document.body.classList.remove('splash-lock');
@@ -1177,16 +1202,16 @@ body.splash-lock{overflow:hidden}
     if(reduceMotion){
       setTimeout(finish,450);
     }else{
-      page.addEventListener('transitionend',e=>{if(e.propertyName==='transform')finish();},{once:true});
-      setTimeout(finish,1700); // rete di sicurezza se transitionend non parte
+      leftPanel.addEventListener('transitionend',finish,{once:true});
+      setTimeout(finish,1600); // rete di sicurezza se transitionend non parte
     }
   }
 
-  document.getElementById('splashSkip').addEventListener('click',turnPage);
+  document.getElementById('splashSkip').addEventListener('click',openCurtain);
 
   if(reduceMotion){
     // niente scrittura animata: breve pausa e via, dissolvenza semplice
-    setTimeout(turnPage,700);
+    setTimeout(openCurtain,700);
     return;
   }
 
@@ -1201,7 +1226,7 @@ body.splash-lock{overflow:hidden}
 
   splash.addEventListener('animationend',e=>{
     if(e.animationName==='splashReveal'){
-      setTimeout(turnPage,550); // piccola pausa dopo l'ultima lettera
+      setTimeout(openCurtain,550); // piccola pausa dopo l'ultima lettera
     }
   });
 })();
@@ -1274,6 +1299,8 @@ function renderNavUser(){
     loadGuestData();
     renderNavUser();renderCta();
     renderAllViews();
+    resetEconomiaCache();
+    loadEphemeris();
     navigate('home');
   });
 }
@@ -1297,6 +1324,41 @@ function renderCta(){
     document.getElementById('ctaRegister').addEventListener('click',()=>openAuth('register'));
     document.getElementById('ctaLogin').addEventListener('click',()=>openAuth('login'));
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ECONOMIA — Aurei / XP / Livello / Streak. Scheletro: per ora l'unica
+   fonte è Ephemeris, ma la cache e il rendering sono generici così le
+   prossime feature (Tabellarium, Atelier…) potranno solo ricaricare
+   /api/economia dopo le loro chiamate, senza reinventare nulla qui.
+   Gli ospiti vedono il pill nascosto: senza account non ha senso
+   mostrare un saldo che non persiste da nessuna parte.
+   ══════════════════════════════════════════════════════════════════ */
+let economiaCache={aurei:0,xp:0,livello:'Discepolo',streak_giorni:0};
+function renderEconomia(){
+  const el=document.getElementById('economiaWidget');
+  if(!el)return;
+  const u=getUser();
+  el.classList.toggle('show',!!u);
+  if(!u){el.innerHTML='';return;}
+  const e=economiaCache;
+  el.innerHTML=`
+    <span class="eco-aurei">🪙 ${e.aurei}</span>
+    <span class="eco-livello">${e.livello}</span>
+    ${e.streak_giorni?`<span class="eco-streak">🔥 ${e.streak_giorni}</span>`:''}`;
+}
+function resetEconomiaCache(){
+  economiaCache={aurei:0,xp:0,livello:'Discepolo',streak_giorni:0};
+  renderEconomia();
+}
+async function loadEconomia(){
+  if(!currentUser){resetEconomiaCache();return;}
+  try{
+    economiaCache=await apiFetch('/api/economia');
+  }catch(err){
+    console.error('loadEconomia',err);
+  }
+  renderEconomia();
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1426,6 +1488,8 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
     currentUser={nome:d.nome,email:d.email,obiettivo_annuale:d.obiettivo_annuale};
     renderNavUser();renderCta();
     await loadUserData();
+    await loadEconomia();
+    await loadEphemeris();
     closeAuth();
     offerGuestMigration();
     navigate('pantheon');
@@ -1556,6 +1620,72 @@ function renderReviews(){
       </div>
     </div>`).join('');
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   EPHEMERIS — quiz giornaliero. Domanda pubblica (visibile anche agli
+   ospiti), ma rispondere richiede un account: senza login non c'è nulla
+   a cui accreditare aurei/streak, quindi il click apre la modale di
+   accesso, stesso pattern già usato per "Nuova discussione" in Agorà.
+   ══════════════════════════════════════════════════════════════════ */
+let ephemerisState=null;
+async function loadEphemeris(){
+  const el=document.getElementById('ephemerisBody');
+  if(!el)return;
+  try{
+    ephemerisState=await apiFetch('/api/ephemeris/oggi');
+  }catch(err){
+    console.error('loadEphemeris',err);
+    el.innerHTML='<p class="eph-locked">Non riesco a caricare l\u2019enigma di oggi. Riprova più tardi.</p>';
+    return;
+  }
+  renderEphemeris();
+}
+function renderEphemeris(){
+  const el=document.getElementById('ephemerisBody');
+  const e=ephemerisState;
+  if(!el||!e)return;
+  const opzioniHTML=e.opzioni.map((opt,i)=>{
+    let cls='eph-option';
+    if(e.gia_risposto){
+      if(i===e.corretta)cls+=' correct';
+      else if(i===e.opzione_scelta)cls+=' wrong';
+    }
+    return `<button class="${cls}" data-i="${i}"${e.gia_risposto?' disabled':''}>${opt}</button>`;
+  }).join('');
+  let esitoHTML='';
+  if(e.gia_risposto){
+    esitoHTML=`<div class="eph-result">
+      <span class="eph-verdict">${e.corretto?'✓ Hai indovinato!':'✗ Non proprio.'}</span>
+      <span class="eph-reward">+${e.aurei_guadagnati} Aurei</span>
+      ${e.spiegazione?`<br>${e.spiegazione}`:''}
+    </div>`;
+  }else if(!currentUser){
+    esitoHTML=`<p class="eph-locked">Vuoi rispondere e guadagnare Aurei? <a href="#" id="ephLoginLink">Accedi</a>.</p>`;
+  }
+  el.innerHTML=`
+    <p class="eph-quote">«${e.testo}»</p>
+    <p class="eph-question">${e.domanda}</p>
+    <div class="eph-options">${opzioniHTML}</div>
+    ${esitoHTML}`;
+  document.getElementById('ephLoginLink')?.addEventListener('click',ev=>{ev.preventDefault();openAuth('login');});
+}
+document.getElementById('ephemerisBody').addEventListener('click',async ev=>{
+  const btn=ev.target.closest('.eph-option');
+  if(!btn||!ephemerisState||ephemerisState.gia_risposto)return;
+  if(!currentUser){openAuth('login');return;}
+  const i=parseInt(btn.dataset.i,10);
+  try{
+    const res=await apiFetch('/api/ephemeris/rispondi',{method:'POST',body:JSON.stringify({opzione:i})});
+    ephemerisState={...ephemerisState,gia_risposto:true,opzione_scelta:i,
+      corretto:res.corretto,corretta:res.corretta,spiegazione:res.spiegazione,
+      aurei_guadagnati:res.aurei_guadagnati};
+    economiaCache=res.economia;
+    renderEconomia();
+    renderEphemeris();
+  }catch(err){
+    console.error('rispondiEphemeris',err);
+  }
+});
 
 /* ══════════════════════════════════════════════════════════════════
    LAPIDES MILIARII — dati dei libri + stato di lettura personale
@@ -2467,8 +2597,14 @@ async function initApp(){
   loadGuestData();
   renderAllViews();
   loadThreads();
+  resetEconomiaCache();
+  loadEphemeris();
   await checkAuth();
-  if(currentUser)await loadUserData();
+  if(currentUser){
+    await loadUserData();
+    await loadEconomia();
+    await loadEphemeris();
+  }
   checkResetLink();
 }
 initApp();
