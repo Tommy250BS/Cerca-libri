@@ -224,6 +224,26 @@ body.splash-lock{overflow:hidden}
 .economia-pill .eco-streak{color:var(--gold);white-space:nowrap}
 @media(max-width:520px){.economia-pill{display:none!important}}
 
+/* ── Toast "+N Aurei" — feedback immediato ogni volta che l'economia si
+   accredita (libro completato, nota nello Scriptorium, contributo in
+   Agorà, risposta all'Ephemeris). Posizionato in alto, sotto la nav, per
+   non entrare mai in conflitto con la bottom-nav da computer né con la
+   tastiera virtuale da mobile. Impilabile: più premi ravvicinati creano
+   più toast in coda, non si sovrascrivono. ── */
+.aurei-toast-wrap{
+  position:fixed;top:82px;left:50%;transform:translateX(-50%);z-index:2000;
+  display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;
+}
+.aurei-toast{
+  background:var(--bg-3);border:1px solid var(--gold);color:var(--gold-2);
+  padding:10px 20px;border-radius:30px;font-weight:600;font-size:.86rem;
+  box-shadow:0 8px 20px rgba(0,0,0,.45);white-space:nowrap;
+  animation:aureiToastIn .3s cubic-bezier(.16,1,.3,1) forwards,aureiToastOut .35s ease 2.3s forwards;
+}
+@keyframes aureiToastIn{from{opacity:0;transform:translateY(-10px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes aureiToastOut{to{opacity:0;transform:translateY(-8px)}}
+@media(prefers-reduced-motion:reduce){.aurei-toast{animation:aureiToastOut 0s ease 2.3s forwards}}
+
 /* ── Menu mobile: da 940px in giù la bottom-nav (vedi sotto) è nascosta
    e un hamburger apre un pannello a tendina con tutte le sezioni,
    ancorato a .nav (che essendo sticky/position non-static fa già da
@@ -1806,6 +1826,41 @@ async function loadEconomia(){
   renderEconomia();
 }
 
+/* ── Toast "+N Aurei" — vedi CSS .aurei-toast-wrap più sopra. Il div
+   contenitore viene creato una volta sola e riusato, i singoli toast si
+   rimuovono da soli dopo l'animazione (impostata anche qui in JS come
+   rete di sicurezza, non solo via CSS, per non lasciare nodi orfani se
+   l'animationend non dovesse scattare). */
+let aureiToastWrap=null;
+function mostraToastAurei(aurei,motivo){
+  if(!aurei)return;
+  if(!aureiToastWrap){
+    aureiToastWrap=document.createElement('div');
+    aureiToastWrap.className='aurei-toast-wrap';
+    aureiToastWrap.setAttribute('aria-live','polite');
+    document.body.appendChild(aureiToastWrap);
+  }
+  const el=document.createElement('div');
+  el.className='aurei-toast';
+  el.textContent=`🪙 +${aurei} Aurei${motivo?' · '+motivo:''}`;
+  aureiToastWrap.appendChild(el);
+  setTimeout(()=>el.remove(),2700);
+}
+
+/* Applica alla cache locale la parte "economia" di una risposta del
+   backend (presente solo quando quell'azione ha fruttato un premio: libro
+   completato, nota nello Scriptorium, contributo in Agorà, risposta
+   all'Ephemeris) e mostra il toast corrispondente. Centralizzato qui
+   perché la stessa forma di risposta ({aurei_guadagnati, economia})
+   ricorre ormai in più endpoint diversi. */
+function applicaPremioEconomia(risposta,motivo){
+  if(!risposta||!risposta.aurei_guadagnati)return;
+  if(risposta.economia)economiaCache=risposta.economia;
+  renderEconomia();
+  mostraToastAurei(risposta.aurei_guadagnati,motivo);
+  if(typeof renderPantheon==='function')renderPantheon();
+}
+
 /* ── Statistiche personali di Agorà (per il distintivo "Oratore") ──
    A differenza di libreria/scriptorium, qui non teniamo una cache
    completa dei contributi (le discussioni/risposte restano nel loro
@@ -2293,12 +2348,15 @@ function setBookStatus(book,stato){
   if(typeof renderReadingHero==='function')renderReadingHero();
 
   if(currentUser){
-    const req=rimuove
-      ? apiFetch('/api/libreria/'+encodeURI(book.id),{method:'DELETE'})
-      : apiFetch('/api/libreria',{method:'PUT',body:JSON.stringify({
+    if(rimuove){
+      apiFetch('/api/libreria/'+encodeURI(book.id),{method:'DELETE'}).catch(err=>console.error('setBookStatus',err));
+    }else{
+      apiFetch('/api/libreria',{method:'PUT',body:JSON.stringify({
           book_id:book.id,stato,titolo:book.t,autore:book.a,anno:book.y,cover:book.cover||null
-        })});
-    req.catch(err=>console.error('setBookStatus',err));
+        })})
+        .then(res=>applicaPremioEconomia(res,'Libro completato'))
+        .catch(err=>console.error('setBookStatus',err));
+    }
   }else{
     writeLocalLibrary(lib);
   }
@@ -2965,16 +3023,18 @@ async function salvaNotaScriptorium(id,dati){
     const resp=id
       ? await apiFetch('/api/scriptorium/'+id,{method:'PUT',body:JSON.stringify(dati)})
       : await apiFetch('/api/scriptorium',{method:'POST',body:JSON.stringify(dati)});
-    // Solo la creazione di una sessione restituisce anche "economia"
-    // (Aurei/XP aggiornati, vedi crea_nota_scriptorium lato backend): la
-    // separiamo dalla riga vera e propria prima di metterla in cache.
-    const{economia,...row}=resp;
-    if(economia){economiaCache=economia;renderEconomia();}
+    // Solo la creazione (mai la modifica) può fruttare Aurei/XP — sessioni
+    // sempre, le altre note entro un tetto giornaliero (vedi
+    // crea_nota_scriptorium lato backend): separiamo questi due campi
+    // extra dalla riga vera e propria prima di metterla in cache.
+    const{economia,aurei_guadagnati,...row}=resp;
     if(id){
       const idx=scriptoriumCache.findIndex(n=>n.id===id);
       if(idx>-1)scriptoriumCache[idx]=row;else scriptoriumCache.unshift(row);
     }else{
       scriptoriumCache.unshift(row);
+      applicaPremioEconomia({aurei_guadagnati,economia},
+        dati.tipo==='sessione'?'Sessione di lettura':'Nuova nota nello Scriptorium');
     }
   }else{
     if(id){
@@ -3238,13 +3298,16 @@ const EPISTOLARIUM_CARDE=[
    accede — coerente con come l'app tratta già Aurei e streak altrove. */
 const DISTINTIVI=[
   {id:'scriba',tier:'bronze',icon:'🖋️',title:'Scriba',
-    desc:'Raggiungi il livello di Scriba (50 XP).',target:50,
+    desc:'Raggiungi il livello di Scriba (60 XP).',target:60,
     current:()=>economiaCache.xp||0},
   {id:'philosophus',tier:'silver',icon:'📘',title:'Philosophus',
-    desc:'Raggiungi il livello di Philosophus (200 XP).',target:200,
+    desc:'Raggiungi il livello di Philosophus (180 XP).',target:180,
     current:()=>economiaCache.xp||0},
   {id:'custode',tier:'gold',icon:'👑',title:'Custode della Biblioteca',
-    desc:'Raggiungi il rango più alto: Custode della Biblioteca (500 XP).',target:500,
+    desc:'Raggiungi il livello di Custode della Biblioteca (450 XP).',target:450,
+    current:()=>economiaCache.xp||0},
+  {id:'bibliotecario-immortale',tier:'platinum',icon:'🏛️',title:'Bibliotecario Immortale',
+    desc:'Raggiungi il rango più alto: Bibliotecario Immortale (900 XP).',target:900,
     current:()=>economiaCache.xp||0},
   {id:'fiamma-costanza',tier:'silver',icon:'⚡',title:'Fiamma della Costanza',
     desc:'Rispondi correttamente all\u2019enigma dell\u2019Ephemeris per 7 giorni di fila.',target:7,
@@ -3589,12 +3652,13 @@ document.getElementById('replyForm').addEventListener('submit',async e=>{
   const errEl=document.getElementById('threadError');
   errEl.style.display='none';
   try{
-    await apiFetch(`/api/agora/${openThreadId}/risposte`,{method:'POST',body:JSON.stringify({testo:text})});
+    const risposta=await apiFetch(`/api/agora/${openThreadId}/risposte`,{method:'POST',body:JSON.stringify({testo:text})});
     input.value='';
     const t=await apiFetch('/api/agora/'+openThreadId);
     renderThreadReplies(t);
     loadThreads();
     loadAgoraStats(); // così il distintivo "Oratore" si sblocca senza dover ricaricare la pagina
+    applicaPremioEconomia(risposta,'Risposta in Agorà');
   }catch(err){
     errEl.textContent=err.data?.error||'Impossibile inviare la risposta. Riprova.';
     errEl.style.display='block';
@@ -3617,10 +3681,11 @@ document.getElementById('newThreadSubmit').addEventListener('click',async()=>{
   errEl.style.display='none';
   if(!title||!body)return;
   try{
-    await apiFetch('/api/agora',{method:'POST',body:JSON.stringify({titolo:title,corpo:body})});
+    const risposta=await apiFetch('/api/agora',{method:'POST',body:JSON.stringify({titolo:title,corpo:body})});
     document.getElementById('newThreadOverlay').classList.remove('open');
     await loadThreads();
     loadAgoraStats();
+    applicaPremioEconomia(risposta,'Discussione pubblicata');
   }catch(err){
     errEl.textContent=err.data?.error||'Impossibile pubblicare la discussione. Riprova.';
     errEl.style.display='block';
