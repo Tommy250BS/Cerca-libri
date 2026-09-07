@@ -1352,6 +1352,44 @@ body.splash-lock{overflow:hidden}
         </form>
       </div>
 
+      <div class="goal-card" id="accountCard" style="flex-direction:column;align-items:stretch;gap:28px;display:none">
+        <div>
+          <div class="goal-eyebrow">👤 Il tuo account</div>
+          <div class="goal-sub" style="margin-top:0">Il nome resta privato; il nickname è ciò che gli altri lettori vedono in Agorà.</div>
+        </div>
+        <form id="accountForm" style="display:grid;gap:14px;max-width:420px">
+          <div class="field" style="margin-bottom:0">
+            <label>Nome (privato)</label>
+            <input type="text" id="accountNome" autocomplete="name">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Nickname pubblico</label>
+            <input type="text" id="accountNickname" autocomplete="nickname" maxlength="60">
+          </div>
+          <p class="auth-error" id="accountError" style="display:none"></p>
+          <p class="auth-success" id="accountSuccess" style="display:none"></p>
+          <button class="btn btn-gold" type="submit" style="justify-content:center">Aggiorna nome e nickname</button>
+        </form>
+        <div style="height:1px;background:var(--line)"></div>
+        <form id="passwordForm" style="display:grid;gap:14px;max-width:420px">
+          <div class="field" style="margin-bottom:0">
+            <label>Password attuale</label>
+            <input type="password" id="pwAttuale" autocomplete="current-password">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Nuova password</label>
+            <input type="password" id="pwNuova" placeholder="Almeno 6 caratteri" autocomplete="new-password">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Conferma nuova password</label>
+            <input type="password" id="pwConferma" autocomplete="new-password">
+          </div>
+          <p class="auth-error" id="passwordError" style="display:none"></p>
+          <p class="auth-success" id="passwordSuccess" style="display:none"></p>
+          <button class="btn btn-outline" type="submit" style="justify-content:center">Cambia password</button>
+        </form>
+      </div>
+
       <div class="status-tabs" id="profiloTabs">
         <button class="status-tab active" data-filter="in_lettura">In lettura <span id="tabInLetturaCount">(0)</span></button>
         <button class="status-tab" data-filter="letto">Letti <span id="tabLettiCount">(0)</span></button>
@@ -1465,6 +1503,10 @@ body.splash-lock{overflow:hidden}
     <div class="field" id="fieldNome" style="display:none">
       <label>Nome</label>
       <input type="text" id="authNome" placeholder="Il tuo nome" autocomplete="name">
+    </div>
+    <div class="field" id="fieldNickname" style="display:none">
+      <label>Nickname pubblico</label>
+      <input type="text" id="authNickname" placeholder="Come vuoi essere chiamato dagli altri lettori" autocomplete="nickname" maxlength="60">
     </div>
     <div class="field">
       <label>Email</label>
@@ -1728,7 +1770,7 @@ function getUser(){return currentUser;}
 async function checkAuth(){
   try{
     const d=await apiFetch('/api/auth/me');
-    currentUser=d.autenticato?{nome:d.nome,email:d.email,obiettivo_annuale:d.obiettivo_annuale}:null;
+    currentUser=d.autenticato?{nome:d.nome,nickname:d.nickname||d.nome,email:d.email,obiettivo_annuale:d.obiettivo_annuale}:null;
   }catch{
     currentUser=null;
   }
@@ -1753,11 +1795,12 @@ function renderNavUser(){
     return;
   }
   const titolo=economiaCache.livello||'Discepolo';
+  const nick=u.nickname||u.nome;
   el.innerHTML=`
     <button class="nav-profile-btn" data-nav="pantheon" title="Vai al tuo Pantheon">
-      <img src="${avatarUrl(u.nome)}" alt="">
+      <img src="${avatarUrl(nick)}" alt="">
       <span class="nav-profile-text">
-        <span class="nav-profile-name">${u.nome.split(' ')[0]}</span>
+        <span class="nav-profile-name">${escapeHtml(nick)}</span>
         <span class="nav-profile-title" id="navProfileTitle">${titolo}</span>
       </span>
     </button>`;
@@ -1964,6 +2007,7 @@ function openAuth(mode){
   document.getElementById('authTitle').textContent=isReg?'Crea account':'Accedi';
   document.getElementById('authSub').textContent=isReg?'Inizia la tua biblioteca personale.':'Bentornato nella tua biblioteca personale.';
   document.getElementById('fieldNome').style.display=isReg?'block':'none';
+  document.getElementById('fieldNickname').style.display=isReg?'block':'none';
   document.getElementById('fieldPasswordConferma').style.display=isReg?'block':'none';
   document.getElementById('authForgotRow').style.display=isReg?'none':'block';
   document.getElementById('authPassword').autocomplete=isReg?'new-password':'current-password';
@@ -1975,6 +2019,7 @@ function openAuth(mode){
   document.getElementById('authToggle').addEventListener('click',e=>{e.preventDefault();openAuth(isReg?'login':'register');});
   document.getElementById('authEmail').value='';
   document.getElementById('authNome').value='';
+  document.getElementById('authNickname').value='';
   document.getElementById('authPassword').value='';
   document.getElementById('authPasswordConferma').value='';
   document.getElementById('authOverlay').classList.add('open');
@@ -1992,8 +2037,10 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
   if(!email||!password){showAuthError('Inserisci email e password.');return;}
   if(isReg){
     const nome=document.getElementById('authNome').value.trim();
+    const nickname=document.getElementById('authNickname').value.trim();
     const conferma=document.getElementById('authPasswordConferma').value;
     if(!nome){showAuthError('Inserisci il tuo nome.');return;}
+    if(!nickname){showAuthError('Scegli un nickname pubblico.');return;}
     if(password.length<6){showAuthError('La password deve avere almeno 6 caratteri.');return;}
     if(password!==conferma){showAuthError('Le due password non coincidono.');return;}
   }
@@ -2004,10 +2051,10 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
   btn.textContent=isReg?'Creazione in corso…':'Accesso in corso…';
   try{
     const body=isReg
-      ?{email,password,nome:document.getElementById('authNome').value.trim()}
+      ?{email,password,nome:document.getElementById('authNome').value.trim(),nickname:document.getElementById('authNickname').value.trim()}
       :{email,password};
     const d=await apiFetch(isReg?'/api/auth/registra':'/api/auth/login',{method:'POST',body:JSON.stringify(body)});
-    currentUser={nome:d.nome,email:d.email,obiettivo_annuale:d.obiettivo_annuale};
+    currentUser={nome:d.nome,nickname:d.nickname||d.nome,email:d.email,obiettivo_annuale:d.obiettivo_annuale};
     renderNavUser();renderCta();
     await loadUserData();
     await loadEconomia();
