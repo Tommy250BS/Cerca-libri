@@ -301,6 +301,23 @@ def init_db():
                 );
             """)
 
+            # Ledger permanente dei libri già premiati con Aurei/XP per essere
+            # stati completati ('letto'). Deliberatamente NON è una colonna
+            # dentro "libreria": se fosse lì, cancellare il libro dalla
+            # libreria (DELETE /api/libreria/<id>) e rimetterlo come 'letto'
+            # farebbe perdere la memoria del premio già dato, permettendo di
+            # guadagnare Aurei più volte per lo stesso libro. Questa tabella
+            # non ha una DELETE corrispondente da nessuna parte: una volta
+            # premiato, un libro resta premiato per sempre.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS letture_premiate (
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
+                    book_id TEXT NOT NULL,
+                    premiato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (utente_id, book_id)
+                );
+            """)
+
 init_db()
 
 # ── Helpers auth ─────────────────────────────────────────────────────────
@@ -330,18 +347,36 @@ def _utcnow():
 
 # ── Motore economico (Aurei / XP / Livelli / Streak) ────────────────────
 # Scheletro pensato per essere "chiamato" da più feature senza che queste
-# sappiano nulla di come i livelli sono calcolati: oggi solo Ephemeris usa
-# accredita_economia(), domani lo faranno anche Tabellarium/Epistolarium.
-# I nomi dei livelli sono provvisori (vedi documento "Sistema di Valuta ed
-# Esperienza") — le soglie XP sono una prima stima da tarare quando ci
-# saranno più fonti di XP oltre a Ephemeris.
+# sappiano nulla di come i livelli sono calcolati. In origine solo Ephemeris
+# e le sessioni di lettura alimentavano l'economia: ora anche completare un
+# libro per la prima volta e partecipare in Agorà accreditano Aurei/XP (vedi
+# le rispettive route più sotto; le note "non-sessione" dello Scriptorium
+# hanno il loro premio accanto a SESSIONE_AUREI/XP, più avanti nel file). Le
+# soglie dei livelli sono state alzate di conseguenza — con più fonti di XP,
+# le vecchie soglie si sarebbero raggiunte troppo in fretta — ed è stato
+# aggiunto un quinto rango in cima alla scala.
 
 LIVELLI = [
     (0,   "Discepolo"),
-    (50,  "Scriba"),
-    (200, "Philosophus"),
-    (500, "Custode della Biblioteca"),
+    (60,  "Scriba"),
+    (180, "Philosophus"),
+    (450, "Custode della Biblioteca"),
+    (900, "Bibliotecario Immortale"),
 ]
+
+# Aurei/XP per un libro segnato come "letto" per la prima volta. Non è
+# ripetibile per lo stesso libro (vedi tabella letture_premiate) — sopravvive
+# anche a una rimozione e re-aggiunta del libro, proprio per non essere
+# aggirabile.
+AUREI_LIBRO_COMPLETATO = 15
+XP_LIBRO_COMPLETATO    = 15
+
+# Aurei/XP per ogni contributo in Agorà (nuova discussione o risposta), con
+# un tetto giornaliero che evita che scrivere messaggi in serie diventi un
+# modo per generare Aurei all'infinito.
+AUREI_CONTRIBUTO_AGORA         = 3
+XP_CONTRIBUTO_AGORA            = 2
+CAP_CONTRIBUTI_AGORA_AL_GIORNO = 5
 
 def livello_da_xp(xp):
     titolo = LIVELLI[0][1]
@@ -349,6 +384,16 @@ def livello_da_xp(xp):
         if xp >= soglia:
             titolo = nome
     return titolo
+
+def _conta_oggi(db, tabella, utente_id):
+    """Quante righe ha creato l'utente OGGI (data solare UTC) in una delle
+    tabelle di contenuti generati dall'utente. Usata per i tetti giornalieri
+    sui premi di Scriptorium e Agorà — la tabella è sempre un nome fisso
+    scritto nel codice chiamante, mai un valore arbitrario dell'utente."""
+    return db.execute(
+        f"SELECT COUNT(*) AS n FROM {tabella} WHERE utente_id=%s AND creato_il::date=CURRENT_DATE",
+        (utente_id,)
+    ).fetchone()["n"]
 
 def get_o_crea_economia(db, utente_id):
     row = db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
@@ -770,6 +815,15 @@ def imposta_libreria():
     cover = (d.get("cover") or "").strip() or None
 
     db = get_db()
+
+    # Va controllato PRIMA dell'upsert: dopo, non sapremmo più dire se il
+    # libro era già stato premiato in passato (letture_premiate è un ledger
+    # a parte, proprio per sopravvivere anche a una DELETE della libreria).
+    gia_premiato = db.execute(
+        "SELECT 1 FROM letture_premiate WHERE utente_id=%s AND book_id=%s",
+        (u["id"], book_id)
+    ).fetchone() is not None
+
     try:
         db.execute(
             """
@@ -782,11 +836,24 @@ def imposta_libreria():
             (u["id"], book_id, stato, titolo, autore, anno, cover)
         )
         db.commit()
-        return jsonify({"ok": True})
     except Exception as e:
         db.rollback()
         app.logger.exception("imposta_libreria: errore inatteso")
         return jsonify({"error": "Errore nel salvataggio"}), 400
+
+    risposta = {"ok": True, "aurei_guadagnati": 0}
+    if stato == "letto" and not gia_premiato:
+        db.execute(
+            "INSERT INTO letture_premiate (utente_id, book_id) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (u["id"], book_id)
+        )
+        db.commit()
+        riga_economia = accredita_economia(
+            db, u["id"], aurei=AUREI_LIBRO_COMPLETATO, xp=XP_LIBRO_COMPLETATO
+        )
+        risposta["aurei_guadagnati"] = AUREI_LIBRO_COMPLETATO
+        risposta["economia"] = _serializza_economia(riga_economia)
+    return jsonify(risposta)
 
 @app.route("/api/libreria/<path:book_id>", methods=["DELETE"])
 @login_richiesto
@@ -873,6 +940,19 @@ def get_discussione(did):
     out["risposte"] = [dict(r) for r in risposte]
     return jsonify(out)
 
+def _premia_contributo_agora(db, utente_id):
+    """Premia un contributo in Agorà (discussione o risposta) entro un tetto
+    giornaliero condiviso tra le due tabelle — il conteggio va fatto DOPO
+    l'inserimento del contributo corrente, così include anche quello appena
+    creato. Ritorna (aurei_guadagnati, economia_serializzata_o_None)."""
+    n_oggi = _conta_oggi(db, "discussioni", utente_id) + _conta_oggi(db, "risposte", utente_id)
+    if n_oggi > CAP_CONTRIBUTI_AGORA_AL_GIORNO:
+        return 0, None
+    riga_economia = accredita_economia(
+        db, utente_id, aurei=AUREI_CONTRIBUTO_AGORA, xp=XP_CONTRIBUTO_AGORA
+    )
+    return AUREI_CONTRIBUTO_AGORA, _serializza_economia(riga_economia)
+
 @app.route("/api/agora", methods=["POST"])
 @login_richiesto
 def crea_discussione():
@@ -893,6 +973,9 @@ def crea_discussione():
     row = dict(cur.fetchone())
     db.commit()
     row["n_risposte"] = 0
+    row["aurei_guadagnati"], economia = _premia_contributo_agora(db, u["id"])
+    if economia:
+        row["economia"] = economia
     return jsonify(row)
 
 @app.route("/api/agora/<int:did>/risposte", methods=["POST"])
@@ -913,9 +996,12 @@ def rispondi_discussione(did):
         "INSERT INTO risposte (discussione_id, utente_id, autore_nome, testo) VALUES (%s,%s,%s,%s) RETURNING *",
         (did, u["id"], u["nome"], testo)
     )
-    row = cur.fetchone()
+    row = dict(cur.fetchone())
     db.commit()
-    return jsonify(dict(row))
+    row["aurei_guadagnati"], economia = _premia_contributo_agora(db, u["id"])
+    if economia:
+        row["economia"] = economia
+    return jsonify(row)
 
 # ── API Scriptorium (diario personale: citazioni, recensioni, riflessioni) ──
 # A differenza di Agorà, qui login_richiesto vale anche in lettura: è lo
@@ -931,6 +1017,14 @@ SCRIPTORIUM_TIPI = ("nota", "citazione", "recensione", "riflessione", "sessione"
 # più sotto), non un singolo enigma unico per tutti.
 SESSIONE_AUREI = 5
 SESSIONE_XP    = 3
+
+# Aurei/XP per ogni nuova nota "non-sessione" (citazione, recensione,
+# riflessione, nota libera) — prima erano completamente gratuite. Tetto
+# giornaliero come sopra, per lo stesso motivo: evitare che scrivere note
+# vuote o ripetute in serie diventi un modo per generare Aurei all'infinito.
+AUREI_NOTA_SCRIPTORIUM      = 3
+XP_NOTA_SCRIPTORIUM         = 2
+CAP_NOTE_PREMIATE_AL_GIORNO = 5
 
 def _pulisci_scriptorium_input(d):
     """Valida e normalizza i campi comuni a creazione/modifica di una nota.
@@ -1005,12 +1099,25 @@ def crea_nota_scriptorium():
     row = dict(cur.fetchone())
     db.commit()
 
-    # Solo le sessioni concedono Aurei/XP: le altre note (citazioni,
-    # recensioni, riflessioni) restano gratuite, come già erano. Il frontend
-    # legge "economia" dalla risposta solo quando presente, per aggiornare
-    # subito il saldo mostrato in nav senza una chiamata separata.
+    # Le sessioni concedono un premio fisso e dedicato (SESSIONE_AUREI/XP,
+    # una volta al giorno per libro, già verificato più sopra). Gli altri
+    # tipi di nota (citazioni, recensioni, riflessioni, note libere) erano
+    # gratuiti: ora concedono anch'essi un piccolo premio, ma entro un tetto
+    # giornaliero — il conteggio include la nota appena creata, quindi
+    # "<= CAP" premia esattamente le prime CAP note del giorno, non una in
+    # più. Il frontend legge "economia" dalla risposta solo quando presente,
+    # per aggiornare subito il saldo mostrato in nav senza una chiamata
+    # separata.
+    row["aurei_guadagnati"] = 0
     if valori["tipo"] == "sessione":
         riga_economia = accredita_economia(db, u["id"], aurei=SESSIONE_AUREI, xp=SESSIONE_XP)
+        row["aurei_guadagnati"] = SESSIONE_AUREI
+        row["economia"] = _serializza_economia(riga_economia)
+    elif _conta_oggi(db, "scriptorium", u["id"]) <= CAP_NOTE_PREMIATE_AL_GIORNO:
+        riga_economia = accredita_economia(
+            db, u["id"], aurei=AUREI_NOTA_SCRIPTORIUM, xp=XP_NOTA_SCRIPTORIUM
+        )
+        row["aurei_guadagnati"] = AUREI_NOTA_SCRIPTORIUM
         row["economia"] = _serializza_economia(riga_economia)
 
     return jsonify(row)
