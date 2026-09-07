@@ -2847,6 +2847,15 @@ function renderProfilo(){
   document.getElementById('profiloNome').textContent=u?u.nome.split(' ')[0]:'Ospite';
   document.getElementById('profiloGuestNote').style.display=u?'none':'flex';
 
+  const accountCard=document.getElementById('accountCard');
+  if(accountCard){
+    accountCard.style.display=u?'flex':'none';
+    if(u){
+      document.getElementById('accountNome').value=u.nome||'';
+      document.getElementById('accountNickname').value=u.nickname||u.nome||'';
+    }
+  }
+
   const lib=getLibrary();
   const entries=Object.values(lib);
   const letti=entries.filter(e=>e.stato==='letto').length;
@@ -2933,6 +2942,57 @@ document.getElementById('goalForm').addEventListener('submit',e=>{
   renderProfilo();
 });
 document.getElementById('profiloLoginLink')?.addEventListener('click',e=>{e.preventDefault();openAuth('login');});
+
+/* ── Modifica account: nome (privato) + nickname (pubblico) ── */
+document.getElementById('accountForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const errEl=document.getElementById('accountError'),okEl=document.getElementById('accountSuccess');
+  errEl.style.display='none';okEl.style.display='none';
+  const nome=document.getElementById('accountNome').value.trim();
+  const nickname=document.getElementById('accountNickname').value.trim();
+  if(!nome||!nickname){errEl.textContent='Nome e nickname sono obbligatori.';errEl.style.display='block';return;}
+  const btn=e.target.querySelector('button[type=submit]');
+  btn.disabled=true;const testo=btn.textContent;btn.textContent='Salvataggio…';
+  try{
+    const d=await apiFetch('/api/auth/profilo',{method:'PUT',body:JSON.stringify({nome,nickname})});
+    currentUser.nome=d.nome;currentUser.nickname=d.nickname;
+    document.getElementById('profiloNome').textContent=d.nome.split(' ')[0];
+    renderNavUser();
+    okEl.textContent='Nome e nickname aggiornati.';okEl.style.display='block';
+  }catch(err){
+    errEl.textContent=err.data?.error||'Impossibile salvare le modifiche. Riprova.';
+    errEl.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent=testo;
+  }
+});
+
+/* ── Cambio password ── */
+document.getElementById('passwordForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const errEl=document.getElementById('passwordError'),okEl=document.getElementById('passwordSuccess');
+  errEl.style.display='none';okEl.style.display='none';
+  const attuale=document.getElementById('pwAttuale').value;
+  const nuova=document.getElementById('pwNuova').value;
+  const conferma=document.getElementById('pwConferma').value;
+  if(!attuale||!nuova){errEl.textContent='Compila tutti i campi.';errEl.style.display='block';return;}
+  if(nuova.length<6){errEl.textContent='La nuova password deve avere almeno 6 caratteri.';errEl.style.display='block';return;}
+  if(nuova!==conferma){errEl.textContent='Le due password non coincidono.';errEl.style.display='block';return;}
+  const btn=e.target.querySelector('button[type=submit]');
+  btn.disabled=true;const testo=btn.textContent;btn.textContent='Salvataggio…';
+  try{
+    await apiFetch('/api/auth/password',{method:'POST',body:JSON.stringify({password_attuale:attuale,nuova_password:nuova})});
+    okEl.textContent='Password aggiornata.';okEl.style.display='block';
+    document.getElementById('pwAttuale').value='';
+    document.getElementById('pwNuova').value='';
+    document.getElementById('pwConferma').value='';
+  }catch(err){
+    errEl.textContent=err.data?.error||'Impossibile cambiare la password. Riprova.';
+    errEl.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent=testo;
+  }
+});
 
 /* ══════════════════════════════════════════════════════════════════
    MIGRAZIONE DATI OSPITE → ACCOUNT
