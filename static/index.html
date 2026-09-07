@@ -2066,7 +2066,9 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
     await loadEphemeris();
     closeAuth();
     offerGuestMigration();
-    navigate('pantheon');
+    // Niente più navigate('pantheon') qui: dopo il login/registrazione si
+    // resta sulla pagina in cui ci si trovava già (tipicamente la Home),
+    // invece di essere reindirizzati automaticamente al Pantheon.
   }catch(err){
     showAuthError(err.data?.error||'Si è verificato un errore. Riprova.');
   }finally{
