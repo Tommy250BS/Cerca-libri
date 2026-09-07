@@ -1237,7 +1237,11 @@ body.splash-lock{overflow:hidden}
           <div class="vetrina-head">
             <p class="eyebrow">La tua bacheca personale</p>
             <h3>Vetrina dei Distintivi</h3>
-            <p>Ogni traguardo raggiunto diventa un distintivo inciso ed esposto qui, per sempre — una piccola collezione fisica del tuo cammino di lettore.</p>
+            <p>Onorificenze diverse dai traguardi di lettura: premiano il tuo rango nell'economia della Biblioteca, la costanza nell'Ephemeris, l'esplorazione del Passaporto e la voce che porti in Agorà.</p>
+          </div>
+          <div class="guest-note" id="vetrinaGuestNote" style="display:none;margin-bottom:26px">
+            <span>🔒</span>
+            <span>Aurei, XP, streak e contributi in Agorà esistono solo per chi ha un account. <a href="#" id="vetrinaLoginLink">Accedi</a> per iniziare a sbloccare questi distintivi.</span>
           </div>
           <div class="medal-grid" id="medalGrid"><!-- popolato da JS --></div>
         </div>
@@ -1727,6 +1731,7 @@ async function eseguiLogout(){
   renderNavUser();renderCta();
   renderAllViews();
   resetEconomiaCache();
+  resetAgoraStatsCache();
   loadEphemeris();
   navigate('home');
 }
@@ -1781,6 +1786,22 @@ async function loadEconomia(){
     console.error('loadEconomia',err);
   }
   renderEconomia();
+}
+
+/* ── Statistiche personali di Agorà (per il distintivo "Oratore") ──
+   A differenza di libreria/scriptorium, qui non teniamo una cache
+   completa dei contributi (le discussioni/risposte restano nel loro
+   posto): solo un conteggio, richiesto al backend con un endpoint
+   dedicato. */
+let agoraStatsCache={discussioni:0,risposte:0,totale:0};
+function resetAgoraStatsCache(){agoraStatsCache={discussioni:0,risposte:0,totale:0};}
+async function loadAgoraStats(){
+  if(!currentUser){resetAgoraStatsCache();return;}
+  try{
+    agoraStatsCache=await apiFetch('/api/agora/mie-statistiche');
+  }catch(err){
+    console.error('loadAgoraStats',err);
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1910,6 +1931,7 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
     renderNavUser();renderCta();
     await loadUserData();
     await loadEconomia();
+    await loadAgoraStats();
     await loadEphemeris();
     closeAuth();
     offerGuestMigration();
@@ -2413,13 +2435,23 @@ const ACHIEVEMENTS=[
     current:lib=>BOOKS.filter(b=>lib[b.id]?.stato==='letto').length},
   {id:'cercatore',tier:'bronze',title:'Cercatore',desc:'Metti 3 opere nella tua lista dei desideri.',target:3,
     current:lib=>Object.values(lib).filter(e=>e.stato==='desiderio').length},
+  {id:'collezionista-desideri',tier:'silver',title:'Collezionista',desc:'Metti 8 opere nella tua lista dei desideri.',target:8,
+    current:lib=>Object.values(lib).filter(e=>e.stato==='desiderio').length},
+  {id:'multitasking',tier:'bronze',title:'Doppia Pagina',desc:'Tieni 2 opere in lettura contemporaneamente.',target:2,
+    current:lib=>Object.values(lib).filter(e=>e.stato==='in_lettura').length},
   {id:'in-cammino',tier:'silver',title:'In Cammino',desc:'Tieni 5 opere in lettura contemporaneamente.',target:5,
     current:lib=>Object.values(lib).filter(e=>e.stato==='in_lettura').length},
   {id:'poliedrico',tier:'silver',title:'Poliedrico',desc:'Leggi opere di almeno 5 autori diversi.',target:5,
     current:lib=>new Set(Object.values(lib).filter(e=>e.stato==='letto').map(e=>e.autore).filter(Boolean)).size},
+  {id:'enciclopedico',tier:'gold',title:'Enciclopedico',desc:'Leggi opere di almeno 10 autori diversi.',target:10,
+    current:lib=>new Set(Object.values(lib).filter(e=>e.stato==='letto').map(e=>e.autore).filter(Boolean)).size},
   {id:'prima-voce',tier:'bronze',title:'Prima Voce',desc:'Scrivi la tua prima recensione nello Scriptorium.',target:1,
     current:()=>numeroRecensioni()},
+  {id:'critico-letterario',tier:'silver',title:'Critico Letterario',desc:'Scrivi 5 recensioni nello Scriptorium.',target:5,
+    current:()=>getScriptorium().filter(n=>n.tipo==='recensione').length},
   {id:'cronista',tier:'silver',title:'Cronista dei Classici',desc:'Scrivi 10 note nello Scriptorium, tra citazioni, recensioni e riflessioni.',target:10,
+    current:()=>getScriptorium().length},
+  {id:'filosofo-taccuino',tier:'gold',title:'Filosofo del Taccuino',desc:'Scrivi 25 note nello Scriptorium, tra citazioni, recensioni e riflessioni.',target:25,
     current:()=>getScriptorium().length},
   {id:'guardiano-canone',tier:'gold',title:'Guardiano del Canone',desc:'Sblocca tutti gli altri traguardi del Pantheon.',target:0,
     current:lib=>ACHIEVEMENTS.filter(a=>a.id!=='guardiano-canone').filter(a=>a.current(lib)>=a.target).length},
@@ -2429,35 +2461,38 @@ const ACHIEVEMENTS=[
 ACHIEVEMENTS.find(a=>a.id==='guardiano-canone').target=ACHIEVEMENTS.length-1;
 const TIER_LABEL={bronze:'Bronze',silver:'Silver',gold:'Gold',platinum:'Platinum'};
 
-/* Icone dei distintivi nella Vetrina — un'icona per ciascun traguardo
-   del Pantheon. In attesa di una vera feature "distintivi" (con art
-   dedicata, magari sbloccabili anche fuori dai traguardi), la Vetrina
-   riusa gli stessi dati di ACHIEVEMENTS: stesso sblocco, resa fisica
-   diversa da tablet a medaglia. */
+/* Icone delle steli del Pantheon — un'icona per ciascun traguardo di
+   lettura. Le icone dei Distintivi veri (Vetrina) sono invece definite
+   direttamente in ciascuna voce di DISTINTIVI più sotto, dato che quella
+   collezione ha criteri propri e non condivide più i dati di questi
+   traguardi. */
 const ACH_ICONS={
   'primo-passo':'📖','lettore-vorace':'🔥','bibliofilo':'🦉','erudito':'👑',
-  'cercatore':'🧭','in-cammino':'🕯️','poliedrico':'🎭','prima-voce':'🖋️',
-  'cronista':'📜','guardiano-canone':'🛡️',
+  'cercatore':'🧭','collezionista-desideri':'🧳','multitasking':'🔀','in-cammino':'🕯️',
+  'poliedrico':'🎭','enciclopedico':'🌐','prima-voce':'🖋️','critico-letterario':'📝',
+  'cronista':'📜','filosofo-taccuino':'📓','guardiano-canone':'🛡️',
 };
 let pantheonView='traguardi';
 
 function renderVetrina(){
   const grid=document.getElementById('medalGrid');
   if(!grid)return;
+  const guestNote=document.getElementById('vetrinaGuestNote');
+  if(guestNote)guestNote.style.display=getUser()?'none':'flex';
   const lib=getLibrary();
-  grid.innerHTML=ACHIEVEMENTS.map(a=>{
-    const current=Math.min(a.current(lib),a.target);
-    const unlocked=current>=a.target;
-    const icona=ACH_ICONS[a.id]||'✦';
+  grid.innerHTML=DISTINTIVI.map(d=>{
+    const target=typeof d.target==='function'?d.target():d.target;
+    const current=Math.min(d.current(lib),target);
+    const unlocked=target>0&&current>=target;
     return `
-    <div class="medal${unlocked?' unlocked':' locked'}" title="${escapeHtml(a.desc)}">
+    <div class="medal${unlocked?' unlocked':' locked'}" title="${escapeHtml(d.desc)}">
       <div class="medal-glow">
         <div class="medal-ribbon"><i></i><i></i></div>
-        <div class="medal-disc${unlocked?' on-'+a.tier:''}">${unlocked?icona:'🔒'}</div>
+        <div class="medal-disc${unlocked?' on-'+d.tier:''}">${unlocked?d.icon:'🔒'}</div>
       </div>
-      <div class="medal-name">${a.title}</div>
-      <div class="medal-tier${unlocked?' on-'+a.tier:''}">${TIER_LABEL[a.tier]}</div>
-      ${unlocked?'':`<div class="medal-hint">${current} / ${a.target}</div>`}
+      <div class="medal-name">${d.title}</div>
+      <div class="medal-tier${unlocked?' on-'+d.tier:''}">${TIER_LABEL[d.tier]}</div>
+      ${unlocked?'':`<div class="medal-hint">${current} / ${target}</div>`}
     </div>`;
   }).join('');
 }
@@ -2511,6 +2546,7 @@ function renderPantheon(){
   renderVetrina();
 }
 document.getElementById('pantheonLoginLink')?.addEventListener('click',e=>{e.preventDefault();openAuth('login');});
+document.getElementById('vetrinaLoginLink')?.addEventListener('click',e=>{e.preventDefault();openAuth('login');});
 document.getElementById('btnLogoutPantheon').addEventListener('click',eseguiLogout);
 
 /* ══════════════════════════════════════════════════════════════════
@@ -3077,6 +3113,62 @@ const EPISTOLARIUM_CARDE=[
    citazione:"Musa, dammi di quell'uomo il multiforme ingegno."},
 ];
 
+/* ══════════════════════════════════════════════════════════════════
+   DISTINTIVI — le medaglie VERE della Vetrina.
+   A differenza dei Traguardi del Pantheon (le steli, tutte calcolate
+   sui soli stati della libreria: letto/in_lettura/desiderio), i
+   Distintivi premiano dimensioni diverse dell'esperienza — il tuo
+   rango nell'economia (Aurei/XP), la costanza nell'Ephemeris,
+   l'esplorazione del mondo nel Passaporto, la collezione completa
+   delle cartoline, la partecipazione viva in Agorà. Prima d'ora la
+   Vetrina si limitava a ridisegnare gli stessi identici traguardi del
+   Pantheon (stesso sblocco, resa fisica diversa): con questo elenco
+   diventa una collezione a sé, con criteri propri.
+
+   `target` può essere un numero fisso oppure una funzione (per i casi
+   in cui dipende da uno stato che cambia nel tempo, come l'obiettivo
+   di lettura annuale scelto dall'utente). `current` riceve sempre la
+   libreria (anche quando non la usa) per uniformità con renderVetrina().
+   I dati di Aurei/XP/streak (economiaCache) e di Agorà (agoraStatsCache)
+   esistono solo per chi ha un account: per gli ospiti restano a zero,
+   quindi questi distintivi risultano sempre bloccati finché non si
+   accede — coerente con come l'app tratta già Aurei e streak altrove. */
+const DISTINTIVI=[
+  {id:'scriba',tier:'bronze',icon:'🖋️',title:'Scriba',
+    desc:'Raggiungi il livello di Scriba (50 XP).',target:50,
+    current:()=>economiaCache.xp||0},
+  {id:'philosophus',tier:'silver',icon:'📘',title:'Philosophus',
+    desc:'Raggiungi il livello di Philosophus (200 XP).',target:200,
+    current:()=>economiaCache.xp||0},
+  {id:'custode',tier:'gold',icon:'👑',title:'Custode della Biblioteca',
+    desc:'Raggiungi il rango più alto: Custode della Biblioteca (500 XP).',target:500,
+    current:()=>economiaCache.xp||0},
+  {id:'fiamma-costanza',tier:'silver',icon:'⚡',title:'Fiamma della Costanza',
+    desc:'Rispondi correttamente all\u2019enigma dell\u2019Ephemeris per 7 giorni di fila.',target:7,
+    current:()=>economiaCache.streak_giorni||0},
+  {id:'piccolo-tesoro',tier:'bronze',icon:'🪙',title:'Piccolo Tesoro',
+    desc:'Accumula 100 Aurei.',target:100,
+    current:()=>economiaCache.aurei||0},
+  {id:'grande-tesoro',tier:'gold',icon:'💰',title:'Grande Tesoro',
+    desc:'Accumula 400 Aurei.',target:400,
+    current:()=>economiaCache.aurei||0},
+  {id:'ambasciatore',tier:'gold',icon:'🌍',title:'Ambasciatore del Mondo',
+    desc:'Completa il timbro d\u2019oro di almeno 2 continenti nel Passaporto Letterario.',target:2,
+    current:lib=>CONTINENTI.filter(c=>PAESI.some(p=>p.continente===c.id)&&continenteCompletato(c.id,lib)).length},
+  {id:'filatelico',tier:'platinum',icon:'📮',title:'Filatelico',
+    desc:'Colleziona tutte le cartoline dell\u2019Epistolarium.',target:()=>EPISTOLARIUM_CARDE.length,
+    current:lib=>EPISTOLARIUM_CARDE.filter(c=>lib[c.libroChiave]?.stato==='letto').length},
+  {id:'oratore',tier:'bronze',icon:'🗣️',title:'Oratore dell\u2019Agorà',
+    desc:'Partecipa per la prima volta all\u2019Agorà, con una discussione o una risposta.',target:1,
+    current:()=>agoraStatsCache.totale||0},
+  {id:'voce-autorevole',tier:'silver',icon:'📣',title:'Voce Autorevole',
+    desc:'Raggiungi 10 contributi complessivi nell\u2019Agorà, tra discussioni e risposte.',target:10,
+    current:()=>agoraStatsCache.totale||0},
+  {id:'obiettivo-anno',tier:'gold',icon:'🎯',title:'Obiettivo dell\u2019Anno',
+    desc:'Raggiungi il tuo obiettivo di lettura annuale personale.',target:()=>getGoal(),
+    current:lib=>Object.values(lib).filter(e=>e.stato==='letto').length},
+];
+
 let tabellariumView='passaporto';
 let tabellariumContinente=CONTINENTI.find(c=>PAESI.some(p=>p.continente===c.id))?.id||CONTINENTI[0].id;
 let tabellariumPaeseEspanso=null;
@@ -3399,6 +3491,7 @@ document.getElementById('replyForm').addEventListener('submit',async e=>{
     const t=await apiFetch('/api/agora/'+openThreadId);
     renderThreadReplies(t);
     loadThreads();
+    loadAgoraStats(); // così il distintivo "Oratore" si sblocca senza dover ricaricare la pagina
   }catch(err){
     errEl.textContent=err.data?.error||'Impossibile inviare la risposta. Riprova.';
     errEl.style.display='block';
@@ -3424,6 +3517,7 @@ document.getElementById('newThreadSubmit').addEventListener('click',async()=>{
     await apiFetch('/api/agora',{method:'POST',body:JSON.stringify({titolo:title,corpo:body})});
     document.getElementById('newThreadOverlay').classList.remove('open');
     await loadThreads();
+    loadAgoraStats();
   }catch(err){
     errEl.textContent=err.data?.error||'Impossibile pubblicare la discussione. Riprova.';
     errEl.style.display='block';
@@ -3485,6 +3579,7 @@ async function initApp(){
   if(currentUser){
     await loadUserData();
     await loadEconomia();
+    await loadAgoraStats();
     await loadEphemeris();
   }
   checkResetLink();
