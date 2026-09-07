@@ -45,13 +45,12 @@ caso per caso.
 import os
 import re
 import secrets
-import smtplib
 from datetime import datetime, timedelta, timezone
-from email.mime.text import MIMEText
 from functools import wraps
 
 import bcrypt
 import psycopg
+import resend
 from flask import Flask, g, jsonify, request, session
 from flask_cors import CORS
 from psycopg.rows import dict_row
@@ -78,46 +77,46 @@ app.config.update(
 )
 
 # ── EMAIL (reset password) ──────────────────────────────────────────────
-EMAIL_MITTENTE      = os.environ.get("EMAIL_MITTENTE", "biblioteca.aeterna@gmail.com")
-SMTP_HOST           = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT           = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER           = os.environ.get("SMTP_USER", EMAIL_MITTENTE)
-SMTP_PASSWORD       = os.environ.get("SMTP_PASSWORD", "")  # App Password, non la password dell'account
+# Invio via Resend (API HTTPS) e non via SMTP: Render blocca le connessioni
+# SMTP in uscita su tutti i piani, quindi smtplib non funzionerebbe mai da
+# questo host — l'API HTTPS di Resend passa invece senza problemi.
+EMAIL_MITTENTE      = os.environ.get("EMAIL_MITTENTE", "onboarding@resend.dev")
+RESEND_API_KEY      = os.environ.get("RESEND_API_KEY", "")
 FRONTEND_URL        = os.environ.get("FRONTEND_URL", "https://biblioteca-aeterna.example.com")
 RESET_TOKEN_TTL_MIN = 30
 
-def invia_email_reset(destinatario, nome, token):
-    """Invia l'email col link di reset password. Se SMTP_PASSWORD non è
-    configurata (es. in sviluppo locale), logga il link invece di fallire:
-    utile per testare il flusso senza una vera casella email."""
-    link = f"{FRONTEND_URL}/?reset={token}"
-    corpo = (
-        f"Ciao {nome},\n\n"
-        f"Hai richiesto di reimpostare la password del tuo account su "
-        f"Biblioteca Aeterna. Clicca sul link qui sotto per sceglierne una "
-        f"nuova (valido per {RESET_TOKEN_TTL_MIN} minuti):\n\n"
-        f"{link}\n\n"
-        f"Se non hai richiesto tu il reset, ignora pure questa email: la tua "
-        f"password attuale resta invariata.\n\n"
-        f"— Biblioteca Aeterna\n"
-        f"{EMAIL_MITTENTE}"
-    )
-    msg = MIMEText(corpo, "plain", "utf-8")
-    msg["Subject"] = "Reimposta la tua password — Biblioteca Aeterna"
-    msg["From"]    = EMAIL_MITTENTE
-    msg["To"]      = destinatario
+resend.api_key = RESEND_API_KEY
 
-    if not SMTP_PASSWORD:
+def invia_email_reset(destinatario, nome, token):
+    """Invia l'email col link di reset password tramite Resend. Se
+    RESEND_API_KEY non è configurata (es. in sviluppo locale), logga il
+    link invece di fallire: utile per testare il flusso senza mandare
+    email vere."""
+    link = f"{FRONTEND_URL}/?reset={token}"
+    corpo_html = (
+        f"<p>Ciao {nome},</p>"
+        f"<p>Hai richiesto di reimpostare la password del tuo account su "
+        f"Biblioteca Aeterna. Clicca sul link qui sotto per sceglierne una "
+        f"nuova (valido per {RESET_TOKEN_TTL_MIN} minuti):</p>"
+        f'<p><a href="{link}">{link}</a></p>'
+        f"<p>Se non hai richiesto tu il reset, ignora pure questa email: la tua "
+        f"password attuale resta invariata.</p>"
+        f"<p>— Biblioteca Aeterna</p>"
+    )
+
+    if not RESEND_API_KEY:
         app.logger.warning(
-            "invia_email_reset: SMTP_PASSWORD non configurata, email NON inviata. "
+            "invia_email_reset: RESEND_API_KEY non configurata, email NON inviata. "
             "Link di reset (solo per debug/sviluppo): %s", link
         )
         return False
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASSWORD)
-            server.sendmail(EMAIL_MITTENTE, [destinatario], msg.as_string())
+        resend.Emails.send({
+            "from": EMAIL_MITTENTE,
+            "to": [destinatario],
+            "subject": "Reimposta la tua password — Biblioteca Aeterna",
+            "html": corpo_html,
+        })
         return True
     except Exception:
         app.logger.exception("invia_email_reset: errore nell'invio a %s", destinatario)
