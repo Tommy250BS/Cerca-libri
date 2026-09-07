@@ -1360,6 +1360,7 @@ body.splash-lock{overflow:hidden}
       </div>
       <div class="status-tabs" id="scriptoriumTabs">
         <button class="status-tab active" data-filter="tutte">Tutte</button>
+        <button class="status-tab" data-filter="sessione">Sessioni di lettura</button>
         <button class="status-tab" data-filter="citazione">Citazioni</button>
         <button class="status-tab" data-filter="recensione">Recensioni</button>
         <button class="status-tab" data-filter="riflessione">Riflessioni</button>
@@ -1570,11 +1571,12 @@ body.splash-lock{overflow:hidden}
         <option value="riflessione">Riflessione</option>
         <option value="citazione">Citazione</option>
         <option value="recensione">Recensione</option>
+        <option value="sessione">Sessione di lettura</option>
         <option value="nota">Nota libera</option>
       </select>
     </div>
     <div class="field" id="scriptoriumFieldLibro">
-      <label>Libro collegato (opzionale)</label>
+      <label id="scriptoriumFieldLibroLabel">Libro collegato (opzionale)</label>
       <select id="scriptoriumLibro">
         <option value="">— Nessun libro collegato —</option>
       </select>
@@ -1584,11 +1586,24 @@ body.splash-lock{overflow:hidden}
       <input type="text" id="scriptoriumTitolo" placeholder="Un titolo per questa nota">
     </div>
     <div class="field">
-      <label>Testo</label>
+      <label id="scriptoriumFieldTestoLabel">Testo</label>
       <textarea id="scriptoriumTesto" rows="6" placeholder="Scrivi qui il tuo pensiero…"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-gold" id="scriptoriumSubmit" style="justify-content:center">Salva</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PROPOSTA RECENSIONE (dopo aver segnato "Letto") ═══════════════ -->
+<div class="modal-overlay" id="reviewPromptOverlay">
+  <div class="modal">
+    <button class="modal-close" id="reviewPromptClose" aria-label="Chiudi">✕</button>
+    <h2>Complimenti per la lettura! 🎉</h2>
+    <p class="modal-sub" id="reviewPromptSub">Vuoi lasciare subito una recensione nello Scriptorium?</p>
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="reviewPromptWrite" style="justify-content:center">Scrivi la recensione ora</button>
+      <button class="btn btn-outline" id="reviewPromptLater" style="justify-content:center">Più tardi</button>
     </div>
   </div>
 </div>
@@ -2287,7 +2302,31 @@ function setBookStatus(book,stato){
   }else{
     writeLocalLibrary(lib);
   }
+
+  // Aggancio naturale verso lo Scriptorium: appena un libro passa a "Letto"
+  // (non quando lo si toglie ricliccando lo stesso pulsante) proponiamo,
+  // senza obbligo, di scrivere subito la recensione con il libro già
+  // precompilato. Niente proposta se una recensione per quel libro esiste
+  // già, per non essere ripetitivi ad ogni piccola modifica.
+  if(!rimuove&&stato==='letto')maybeOfferReview(book);
 }
+
+/* ── Proposta di recensione dopo "Letto" ──────────────────────────────── */
+let reviewPromptBook=null;
+function maybeOfferReview(book){
+  const giaRecensito=getScriptorium().some(n=>n.tipo==='recensione'&&n.book_id===book.id);
+  if(giaRecensito)return;
+  reviewPromptBook=book;
+  document.getElementById('reviewPromptSub').textContent=
+    `Hai segnato «${book.t}» come letto. Vuoi lasciare subito una recensione nello Scriptorium?`;
+  document.getElementById('reviewPromptOverlay').classList.add('open');
+}
+document.getElementById('reviewPromptClose').addEventListener('click',()=>document.getElementById('reviewPromptOverlay').classList.remove('open'));
+document.getElementById('reviewPromptLater').addEventListener('click',()=>document.getElementById('reviewPromptOverlay').classList.remove('open'));
+document.getElementById('reviewPromptWrite').addEventListener('click',()=>{
+  document.getElementById('reviewPromptOverlay').classList.remove('open');
+  if(reviewPromptBook)openScriptoriumModal(null,{tipo:'recensione',book_id:reviewPromptBook.id});
+});
 
 /* ── Copertine da Open Library, con cache in localStorage ──
    Stessa tecnica già usata nella vecchia app: cerchiamo per titolo+
@@ -2353,25 +2392,33 @@ function bookCardHTML(b,stato){
 /* ══════════════════════════════════════════════════════════════════
    READING HERO CARD (Home) — il libro "in lettura ora", con una barra
    di avanzamento e il pulsante per registrare una sessione di lettura.
-   Le "sessioni" sono uno scheletro puramente client-side (localStorage,
-   non sincronizzato sull'account): non esiste ancora, né qui né nel
-   documento di gamification, una vera unità di misura del progresso
-   di lettura (pagine? capitoli?), quindi per ora contiamo solo quante
-   volte l'utente ha premuto "Registra sessione" — stesso spirito dei
-   traguardi del Pantheon, "in attesa di una progettazione dedicata".
+   Le sessioni sono ormai vere voci dello Scriptorium (tipo 'sessione',
+   vedi più sotto): il conteggio qui non è più un finto contatore locale,
+   ma il numero reale di sessioni registrate per QUEL libro, letto dalla
+   stessa scriptoriumCache già usata dallo Scriptorium — nessuna cache
+   parallela da tenere sincronizzata.
    Se ci sono più libri "in lettura", si mostra il primo della cache
    (per gli utenti loggati corrisponde al più aggiornato di recente,
    dato che /api/libreria li restituisce già ordinati così). */
-const LS_SESSIONI='aeterna_sessioni_lettura';
 const SESSIONI_TARGET=5; // soglia puramente visiva della barra di avanzamento
-let sessioniCache={};
-function readLocalSessioni(){try{return JSON.parse(localStorage.getItem(LS_SESSIONI))||{};}catch{return{};}}
-function writeLocalSessioni(obj){localStorage.setItem(LS_SESSIONI,JSON.stringify(obj));}
-function getSessioni(){return sessioniCache;}
 
 function pickLibroInLettura(){
   const voce=Object.entries(getLibrary()).find(([,e])=>e.stato==='in_lettura');
   return voce?{id:voce[0],...voce[1]}:null;
+}
+
+/* Tutte le sessioni registrate per un libro, e se una di queste è di oggi:
+   il limite è una sessione al giorno PER LIBRO, non totale — puoi
+   registrare libri diversi lo stesso giorno, ognuno con la sua ricompensa. */
+function sessioniDiLibro(bookId){
+  return getScriptorium().filter(n=>n.tipo==='sessione'&&n.book_id===bookId);
+}
+function stessoGiornoSolare(a,b){
+  return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+}
+function sessioneRegistrataOggi(bookId){
+  const oggi=new Date();
+  return sessioniDiLibro(bookId).some(n=>stessoGiornoSolare(new Date(n.creato_il),oggi));
 }
 
 function renderReadingHero(){
@@ -2389,8 +2436,9 @@ function renderReadingHero(){
     return;
   }
   el.className='reading-card';
-  const sessioni=getSessioni()[libro.id]||0;
+  const sessioni=sessioniDiLibro(libro.id).length;
   const pct=Math.min(100,(sessioni/SESSIONI_TARGET*100));
+  const giaOggi=sessioneRegistrataOggi(libro.id);
   el.innerHTML=`
     <div class="reading-card-cover">
       <div class="reading-card-fallback">${(libro.titolo||'?')[0]}</div>
@@ -2405,14 +2453,26 @@ function renderReadingHero(){
         <span class="progress-label">${sessioni} ${sessioni===1?'sessione':'sessioni'}</span>
       </div>
     </div>
-    <button class="btn btn-gold" id="btnRegistraSessione">Registra sessione di lettura</button>`;
-  document.getElementById('btnRegistraSessione').addEventListener('click',()=>registraSessioneLettura(libro.id));
+    <button class="btn btn-gold" id="btnRegistraSessione"${giaOggi?' disabled':''}>${giaOggi?'✓ Sessione registrata oggi':'Registra sessione di lettura'}</button>`;
+  if(!giaOggi)document.getElementById('btnRegistraSessione').addEventListener('click',()=>registraSessioneLettura(libro));
 }
-function registraSessioneLettura(bookId){
-  sessioniCache={...sessioniCache,[bookId]:(sessioniCache[bookId]||0)+1};
-  writeLocalSessioni(sessioniCache);
-  renderReadingHero();
-  navigate('pantheon');
+
+async function registraSessioneLettura(libro){
+  const btn=document.getElementById('btnRegistraSessione');
+  if(btn){btn.disabled=true;btn.textContent='Registrazione…';}
+  try{
+    await salvaNotaScriptorium(null,{
+      tipo:'sessione',titolo:'',testo:'',
+      book_id:libro.id,titolo_libro:libro.titolo,autore_libro:libro.autore||'',cover_libro:libro.cover||''
+    });
+    // salvaNotaScriptorium richiama già renderReadingHero(): il pulsante
+    // risulterà disabilitato con la spunta "registrata oggi", ed eventuali
+    // Aurei guadagnati sono già visibili nel saldo in nav (renderEconomia).
+  }catch(err){
+    console.error('registraSessioneLettura',err);
+    alert((err.data&&err.data.error)||'Non sono riuscito a registrare la sessione. Riprova.');
+    renderReadingHero();
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -2894,10 +2954,22 @@ async function loadScriptorium(){
    subito per gli ospiti; per gli utenti loggati si aspetta la risposta
    del server (serve comunque per avere l'id vero da riusare in seguito). */
 async function salvaNotaScriptorium(id,dati){
+  if(dati.tipo==='sessione'&&!id&&sessioneRegistrataOggi(dati.book_id)){
+    // Difesa in profondità per gli ospiti: il backend applica lo stesso
+    // limite per chi ha un account (vedi POST /api/scriptorium), ma per chi
+    // scrive solo in locale non c'è nessun server a farlo, quindi il
+    // controllo va ripetuto qui.
+    throw Object.assign(new Error('Sessione già registrata oggi'),{data:{error:'Hai già registrato una sessione di lettura per questo libro oggi.'}});
+  }
   if(currentUser){
-    const row=id
+    const resp=id
       ? await apiFetch('/api/scriptorium/'+id,{method:'PUT',body:JSON.stringify(dati)})
       : await apiFetch('/api/scriptorium',{method:'POST',body:JSON.stringify(dati)});
+    // Solo la creazione di una sessione restituisce anche "economia"
+    // (Aurei/XP aggiornati, vedi crea_nota_scriptorium lato backend): la
+    // separiamo dalla riga vera e propria prima di metterla in cache.
+    const{economia,...row}=resp;
+    if(economia){economiaCache=economia;renderEconomia();}
     if(id){
       const idx=scriptoriumCache.findIndex(n=>n.id===id);
       if(idx>-1)scriptoriumCache[idx]=row;else scriptoriumCache.unshift(row);
@@ -2914,6 +2986,7 @@ async function salvaNotaScriptorium(id,dati){
     writeLocalScriptorium(scriptoriumCache);
   }
   renderScriptorium();renderPantheon();renderProfilo();
+  if(typeof renderReadingHero==='function')renderReadingHero();
 }
 function eliminaNotaScriptorium(id){
   scriptoriumCache=scriptoriumCache.filter(n=>n.id!==id);
@@ -2925,7 +2998,7 @@ function eliminaNotaScriptorium(id){
   }
 }
 
-const SCRIPTORIUM_TIPO_LABEL={nota:'Nota libera',citazione:'Citazione',recensione:'Recensione',riflessione:'Riflessione'};
+const SCRIPTORIUM_TIPO_LABEL={nota:'Nota libera',citazione:'Citazione',recensione:'Recensione',riflessione:'Riflessione',sessione:'Sessione di lettura'};
 let scriptoriumFilter='tutte';
 let scriptoriumEditId=null;
 
@@ -2987,19 +3060,38 @@ function popolaSelectLibriScriptorium(selezionato){
   const voci=Object.entries(lib).map(([id,e])=>`<option value="${id}"${id===selezionato?' selected':''}>${escapeHtml(e.titolo)}${e.autore?' — '+escapeHtml(e.autore):''}</option>`).join('');
   sel.innerHTML=`<option value="">— Nessun libro collegato —</option>${voci}`;
 }
-function openScriptoriumModal(nota){
+/* Adatta le etichette/placeholder in base al tipo scelto: le sessioni di
+   lettura hanno un testo facoltativo (il backend lo sostituisce con un
+   segnaposto se assente) e un libro obbligatorio, l'opposto di tutti gli
+   altri tipi. */
+function aggiornaCampiScriptoriumPerTipo(){
+  const isSessione=document.getElementById('scriptoriumTipo').value==='sessione';
+  document.getElementById('scriptoriumFieldTestoLabel').textContent=isSessione?'Testo (opzionale)':'Testo';
+  document.getElementById('scriptoriumTesto').placeholder=isSessione?'Cosa hai letto oggi? (facoltativo)':'Scrivi qui il tuo pensiero…';
+  const libroLabel=document.getElementById('scriptoriumFieldLibroLabel');
+  if(libroLabel)libroLabel.textContent=isSessione?'Libro collegato (obbligatorio)':'Libro collegato (opzionale)';
+}
+document.getElementById('scriptoriumTipo').addEventListener('change',aggiornaCampiScriptoriumPerTipo);
+
+/* `prefill` (opzionale) precompila tipo e libro in creazione — usato dalla
+   proposta di recensione che appare dopo aver segnato un libro come
+   "Letto" (vedi maybeOfferReview). */
+function openScriptoriumModal(nota,prefill){
   scriptoriumEditId=nota?nota.id:null;
   document.getElementById('scriptoriumModalTitle').textContent=nota?'Modifica nota':'Nuova nota';
   document.getElementById('scriptoriumError').style.display='none';
-  document.getElementById('scriptoriumTipo').value=nota?nota.tipo:'riflessione';
+  document.getElementById('scriptoriumTipo').value=nota?nota.tipo:(prefill?.tipo||'riflessione');
   document.getElementById('scriptoriumTitolo').value=nota?(nota.titolo||''):'';
   document.getElementById('scriptoriumTesto').value=nota?nota.testo:'';
-  popolaSelectLibriScriptorium(nota?nota.book_id:'');
+  popolaSelectLibriScriptorium(nota?nota.book_id:(prefill?.book_id||''));
   // Il libro collegato si sceglie solo in creazione: cambiarlo in modifica
   // richiederebbe ripetere la denormalizzazione titolo/autore/cover, quindi
   // per semplicità il campo si nasconde del tutto quando si modifica una
-  // nota già collegata (o già libera) e resta immutabile.
+  // nota già collegata (o già libera) e resta immutabile. Le sessioni non
+  // si modificano proprio (vedi guardia lato backend), ma questo ramo
+  // riguarda comunque solo `nota`, che per le sessioni non passa mai.
   document.getElementById('scriptoriumFieldLibro').style.display=nota?'none':'block';
+  aggiornaCampiScriptoriumPerTipo();
   document.getElementById('scriptoriumOverlay').classList.add('open');
 }
 document.getElementById('btnNewScriptorium').addEventListener('click',()=>openScriptoriumModal(null));
@@ -3008,15 +3100,19 @@ document.getElementById('scriptoriumOverlay').addEventListener('click',e=>{if(e.
 document.getElementById('scriptoriumSubmit').addEventListener('click',async()=>{
   const errEl=document.getElementById('scriptoriumError');
   errEl.style.display='none';
+  const tipo=document.getElementById('scriptoriumTipo').value;
   const testo=document.getElementById('scriptoriumTesto').value.trim();
-  if(!testo){errEl.textContent='Il testo non può essere vuoto.';errEl.style.display='block';return;}
+  if(tipo!=='sessione'&&!testo){errEl.textContent='Il testo non può essere vuoto.';errEl.style.display='block';return;}
   const dati={
-    tipo:document.getElementById('scriptoriumTipo').value,
+    tipo,
     titolo:document.getElementById('scriptoriumTitolo').value.trim(),
     testo,
   };
   if(!scriptoriumEditId){
     const bookId=document.getElementById('scriptoriumLibro').value;
+    if(tipo==='sessione'&&!bookId){
+      errEl.textContent='Seleziona il libro a cui riferisci questa sessione.';errEl.style.display='block';return;
+    }
     if(bookId){
       const libro=getLibrary()[bookId];
       dati.book_id=bookId;
@@ -3576,8 +3672,7 @@ function checkResetLink(){
 async function initApp(){
   renderQuote();
   renderReviews();
-  sessioniCache=readLocalSessioni(); // sempre locale al dispositivo, con o senza login
-  loadGuestData();
+  loadGuestData(); // popola anche scriptoriumCache: le sessioni di lettura si leggono da lì
   renderAllViews();
   loadThreads();
   resetEconomiaCache();
