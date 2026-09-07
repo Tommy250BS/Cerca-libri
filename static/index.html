@@ -1896,7 +1896,8 @@ function mostraToastAurei(aurei,motivo){
   }
   const el=document.createElement('div');
   el.className='aurei-toast';
-  el.textContent=`🪙 +${aurei} Aurei${motivo?' · '+motivo:''}`;
+  const segno=aurei>0?'+':''; // aurei negativo (es. sessione eliminata) porta già il suo '-'
+  el.textContent=`🪙 ${segno}${aurei} Aurei${motivo?' · '+motivo:''}`;
   aureiToastWrap.appendChild(el);
   setTimeout(()=>el.remove(),2700);
 }
