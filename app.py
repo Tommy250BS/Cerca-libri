@@ -431,6 +431,20 @@ def accredita_economia(db, utente_id, aurei=0, xp=0, nuovo_streak=None):
     db.commit()
     return db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
 
+def decrementa_economia(db, utente_id, aurei=0, xp=0):
+    """Contrario di accredita_economia: toglie aurei/xp senza mai andare
+    sotto zero (GREATEST(0, ...)) — usata quando un'azione già premiata
+    viene annullata (es. eliminazione di una sessione di lettura), per non
+    lasciare un premio "fantasma" che non corrisponde più a nulla nei dati
+    reali. Non tocca lo streak: quello riguarda solo l'Ephemeris."""
+    get_o_crea_economia(db, utente_id)
+    db.execute(
+        "UPDATE economia SET aurei=GREATEST(0, aurei-%s), xp=GREATEST(0, xp-%s) WHERE utente_id=%s",
+        (aurei, xp, utente_id)
+    )
+    db.commit()
+    return db.execute("SELECT * FROM economia WHERE utente_id=%s", (utente_id,)).fetchone()
+
 def _serializza_economia(row):
     return {
         "aurei": row["aurei"],
@@ -1195,9 +1209,28 @@ def modifica_nota_scriptorium(nid):
 def elimina_nota_scriptorium(nid):
     u = utente_corrente()
     db = get_db()
+
+    # Va letto PRIMA della DELETE, altrimenti non sapremmo più dire di che
+    # tipo fosse la nota eliminata. Solo le sessioni hanno un premio FISSO
+    # e sempre concesso alla creazione (SESSIONE_AUREI/XP, vedi
+    # crea_nota_scriptorium): per le altre note il premio dipende da un
+    # tetto giornaliero già speso al momento della creazione, quindi non è
+    # possibile risalire con certezza a quanto "restituire" — si lascia
+    # come già accade oggi, evitando di introdurre un ledger dedicato per
+    # un caso limite.
+    riga = db.execute(
+        "SELECT tipo FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"])
+    ).fetchone()
+
     db.execute("DELETE FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"]))
     db.commit()
-    return jsonify({"ok": True})
+
+    risposta = {"ok": True}
+    if riga and riga["tipo"] == "sessione":
+        riga_economia = decrementa_economia(db, u["id"], aurei=SESSIONE_AUREI, xp=SESSIONE_XP)
+        risposta["aurei_rimossi"] = SESSIONE_AUREI
+        risposta["economia"] = _serializza_economia(riga_economia)
+    return jsonify(risposta)
 
 @app.route("/api/agora/mie-statistiche")
 @login_richiesto
