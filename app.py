@@ -988,6 +988,29 @@ def elimina_nota_scriptorium(nid):
     db.commit()
     return jsonify({"ok": True})
 
+@app.route("/api/agora/mie-statistiche")
+@login_richiesto
+def statistiche_agora_utente():
+    """Conteggio dei contributi REALI dell'utente in Agorà (discussioni
+    aperte + risposte scritte). Serve al Pantheon per il distintivo
+    'Oratore dell'Agorà': a differenza dei traguardi di lettura, che si
+    calcolano interamente lato client dalla libreria, questo dato vive
+    solo lato server (discussioni/risposte non sono mai scaricate per
+    intero sul client), quindi va richiesto con una query dedicata."""
+    u = utente_corrente()
+    db = get_db()
+    n_discussioni = db.execute(
+        "SELECT COUNT(*) AS n FROM discussioni WHERE utente_id=%s", (u["id"],)
+    ).fetchone()["n"]
+    n_risposte = db.execute(
+        "SELECT COUNT(*) AS n FROM risposte WHERE utente_id=%s", (u["id"],)
+    ).fetchone()["n"]
+    return jsonify({
+        "discussioni": n_discussioni,
+        "risposte": n_risposte,
+        "totale": n_discussioni + n_risposte,
+    })
+
 # ── Static / avvio ────────────────────────────────────────────────────────
 
 @app.route("/")
