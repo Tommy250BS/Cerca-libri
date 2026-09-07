@@ -370,20 +370,74 @@ body.splash-lock{overflow:hidden}
    ══════════════════════════════════════════════════════════════════ */
 .ephemeris-card{border:1px solid var(--line);background:var(--gold-wash);padding:48px 44px}
 @media(max-width:720px){.ephemeris-card{padding:30px 24px}}
-.eph-quote{font-family:var(--serif);font-style:italic;font-size:1.25rem;color:var(--ink);margin:16px 0 18px;line-height:1.5}
-.eph-question{font-size:.86rem;color:var(--ink-2);margin-bottom:20px}
-.eph-options{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-@media(max-width:640px){.eph-options{grid-template-columns:1fr}}
-.eph-option{padding:14px 18px;border:1px solid var(--line-strong);background:var(--bg);color:var(--ink);text-align:left;font-size:.9rem;font-family:inherit;transition:border-color .15s,background .15s,color .15s}
-.eph-option:hover:not(:disabled){border-color:var(--gold)}
+
+/* ══════════════════════════════════════════════════════════════════
+   EPHEMERIS — la pergamena del giorno. Tre stati fisici:
+   1. Sigillata (non ancora aperta oggi): solo il sigillo di ceralacca
+      e un invito a scoprirla.
+   2. Aperta/in gioco: la pergamena si "srotola" e mostra citazione,
+      domanda e opzioni cliccabili.
+   3. Rivelata (già risposto): la pergamena resta srotolata ma mostra
+      l'esito — spunta, Aurei guadagnati e la Streak in evidenza.
+   Stessa carta chiara/inchiostro già usata nel Tabellarium, per
+   coerenza di materiale fisico in tutta l'app.
+   ══════════════════════════════════════════════════════════════════ */
+.eph-scroll{max-width:460px;margin:0 auto}
+.eph-scroll-roll{
+  height:15px;border-radius:50%/7px;position:relative;z-index:2;
+  background:linear-gradient(180deg,var(--gold-2),#8a6a1f);
+  box-shadow:0 2px 5px rgba(0,0,0,.4);
+}
+.eph-scroll-body{
+  position:relative;z-index:1;margin:-7px 0;padding:36px 34px;text-align:center;
+  background:
+    repeating-linear-gradient(180deg,transparent,transparent 25px,rgba(44,32,19,.05) 25px,rgba(44,32,19,.05) 26px),
+    #efe3c4;
+  color:#3d1a18;box-shadow:inset 0 0 30px rgba(44,32,19,.14);
+}
+@media(max-width:640px){.eph-scroll-body{padding:28px 22px}}
+
+/* ── stato 1: sigillata ── */
+.eph-seal{
+  width:54px;height:54px;border-radius:50%;margin:0 auto 16px;
+  background:radial-gradient(circle at 35% 30%,#a83a34,#6e211d);
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#f4efe3;
+  box-shadow:0 3px 9px rgba(0,0,0,.35),inset 0 -3px 5px rgba(0,0,0,.35);
+}
+.eph-scroll-eyebrow{font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#8a6a1f;margin-bottom:8px}
+.eph-scroll-teaser{font-family:var(--serif);font-style:italic;font-size:1.4rem;color:#3d1a18;margin-bottom:22px;line-height:1.4}
+.eph-scroll-btn{background:#3d1a18;color:#f4efe3;border:1px solid #6e211d}
+.eph-scroll-btn:hover{filter:brightness(1.15)}
+
+/* ── stato 2: aperta / in gioco ── */
+.eph-quote{font-family:var(--serif);font-style:italic;font-size:1.2rem;color:#3d1a18;margin:0 0 16px;line-height:1.5}
+.eph-question{font-size:.84rem;color:#6b5636;margin-bottom:20px}
+.eph-options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;text-align:left}
+@media(max-width:520px){.eph-options{grid-template-columns:1fr}}
+.eph-option{padding:13px 16px;border:1px solid rgba(44,32,19,.28);background:rgba(255,255,255,.4);color:#3d1a18;text-align:left;font-size:.88rem;font-family:inherit;transition:border-color .15s,background .15s,color .15s}
+.eph-option:hover:not(:disabled){border-color:#9c4a1f;background:rgba(255,255,255,.65)}
 .eph-option:disabled{cursor:default}
-.eph-option.correct{border-color:var(--gold);background:rgba(201,162,39,.16);color:var(--gold-2)}
-.eph-option.wrong{border-color:rgba(200,60,50,.4);color:#e28b82}
-.eph-result{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink-2);font-size:.9rem;line-height:1.65}
-.eph-verdict{font-weight:600;color:var(--ink)}
-.eph-reward{color:var(--gold-2);font-weight:600}
-.eph-locked{color:var(--ink-3);font-style:italic;font-size:.88rem;margin-top:18px}
-.eph-locked a{color:var(--gold-2);font-weight:600;font-style:normal}
+.eph-option.correct{border-color:#9c4a1f;background:rgba(156,74,31,.14);color:#7a2e0f;font-weight:600}
+.eph-option.wrong{border-color:#a83a34;background:rgba(168,58,52,.1);color:#a83a34}
+
+/* ── stato 3: rivelata ── */
+.eph-verdict-icon{
+  width:46px;height:46px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:700;color:#fff;
+}
+.eph-verdict-icon.ok{background:#5a7a3a}
+.eph-verdict-icon.no{background:#a83a34}
+.eph-reveal-quote{font-family:var(--serif);font-style:italic;font-size:1.15rem;color:#3d1a18;margin-bottom:8px;line-height:1.5}
+.eph-reveal-answer{font-size:.84rem;color:#6b5636;margin-bottom:22px}
+.eph-reveal-answer b{color:#3d1a18}
+.eph-reward-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.eph-pill{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:30px;font-size:.86rem;font-weight:600}
+.eph-pill-aurei{background:rgba(156,74,31,.14);color:#7a2e0f;border:1px solid rgba(156,74,31,.35)}
+.eph-pill-streak{background:rgba(168,58,52,.12);color:#a83a34;border:1px solid rgba(168,58,52,.32);font-family:var(--serif);font-style:italic}
+.eph-reveal-spiegazione{font-size:.82rem;color:#6b5636;line-height:1.6;border-top:1px dashed rgba(44,32,19,.3);padding-top:16px;margin-top:4px}
+
+.eph-locked{color:#6b5636;font-style:italic;font-size:.86rem;margin-top:18px}
+.eph-locked a{color:#9c4a1f;font-weight:600;font-style:normal}
 
 /* ══════════════════════════════════════════════════════════════════
    COMMUNITY / TESTIMONIALS
@@ -1094,7 +1148,7 @@ body.splash-lock{overflow:hidden}
             <div class="frac"><b id="pantheonUnlockedNum">0</b><span> / <span id="pantheonTotalNum">9</span></span></div>
             <div class="frac-label">Traguardi sbloccati</div>
           </div>
-          <button class="btn btn-quiet" id="btnLogoutPantheon" style="display:none">Esci dall'account</button>
+          <button class="btn btn-outline" id="btnLogoutPantheon" style="display:none">Esci dall'account</button>
         </div>
       </div>
       <div class="guest-note" id="pantheonGuestNote" style="display:none">
@@ -1949,9 +2003,17 @@ function renderReviews(){
    accesso, stesso pattern già usato per "Nuova discussione" in Agorà.
    ══════════════════════════════════════════════════════════════════ */
 let ephemerisState=null;
+/* Sigillata finché l'utente non la apre di sua volontà — puramente
+   visivo/di sessione: resetta ad ogni nuovo caricamento (nuovo giorno,
+   login/logout), non viene persistito da nessuna parte. Se si è già
+   risposto oggi, questo stato viene bypassato del tutto: si va dritti
+   alla pergamena rivelata, non ha senso reincuriosire su un esito già
+   noto. */
+let ephemerisOpened=false;
 async function loadEphemeris(){
   const el=document.getElementById('ephemerisBody');
   if(!el)return;
+  ephemerisOpened=false;
   try{
     ephemerisState=await apiFetch('/api/ephemeris/oggi');
   }catch(err){
@@ -1965,32 +2027,67 @@ function renderEphemeris(){
   const el=document.getElementById('ephemerisBody');
   const e=ephemerisState;
   if(!el||!e)return;
-  const opzioniHTML=e.opzioni.map((opt,i)=>{
-    let cls='eph-option';
-    if(e.gia_risposto){
-      if(i===e.corretta)cls+=' correct';
-      else if(i===e.opzione_scelta)cls+=' wrong';
-    }
-    return `<button class="${cls}" data-i="${i}"${e.gia_risposto?' disabled':''}>${opt}</button>`;
-  }).join('');
-  let esitoHTML='';
+
+  // ── Stato 3: già risposto — pergamena srotolata con l'esito ──
   if(e.gia_risposto){
-    esitoHTML=`<div class="eph-result">
-      <span class="eph-verdict">${e.corretto?'✓ Hai indovinato!':'✗ Non proprio.'}</span>
-      <span class="eph-reward">+${e.aurei_guadagnati} Aurei</span>
-      ${e.spiegazione?`<br>${e.spiegazione}`:''}
-    </div>`;
-  }else if(!currentUser){
-    esitoHTML=`<p class="eph-locked">Vuoi rispondere e guadagnare Aurei? <a href="#" id="ephLoginLink">Accedi</a>.</p>`;
+    const streak=economiaCache.streak_giorni||0;
+    el.innerHTML=`
+      <div class="eph-scroll">
+        <div class="eph-scroll-roll"></div>
+        <div class="eph-scroll-body">
+          <div class="eph-verdict-icon ${e.corretto?'ok':'no'}">${e.corretto?'✓':'✕'}</div>
+          <p class="eph-reveal-quote">«${e.testo}»</p>
+          <p class="eph-reveal-answer">${e.domanda} — <b>${e.opzioni[e.corretta]}</b></p>
+          <div class="eph-reward-row">
+            <span class="eph-pill eph-pill-aurei">🪙 +${e.aurei_guadagnati} Aurei</span>
+            ${streak?`<span class="eph-pill eph-pill-streak">🔥 ${streak} ${streak===1?'Giorno':'Giorni'} di Sapienza</span>`:''}
+          </div>
+          ${e.spiegazione?`<p class="eph-reveal-spiegazione">${e.spiegazione}</p>`:''}
+        </div>
+        <div class="eph-scroll-roll"></div>
+      </div>`;
+    return;
   }
+
+  // ── Stato 1: non ancora aperta — pergamena sigillata ──
+  if(!ephemerisOpened){
+    el.innerHTML=`
+      <div class="eph-scroll">
+        <div class="eph-scroll-roll"></div>
+        <div class="eph-scroll-body">
+          <div class="eph-seal">📜</div>
+          <p class="eph-scroll-eyebrow">Pergamena del giorno</p>
+          <p class="eph-scroll-teaser">L'enigma di oggi ti attende</p>
+          <button class="btn eph-scroll-btn" id="ephScrollOpen">Apri la pergamena →</button>
+        </div>
+        <div class="eph-scroll-roll"></div>
+      </div>`;
+    return;
+  }
+
+  // ── Stato 2: aperta — il quiz vero e proprio ──
+  const opzioniHTML=e.opzioni.map((opt,i)=>`<button class="eph-option" data-i="${i}">${opt}</button>`).join('');
+  const lockedHTML=currentUser?'':`<p class="eph-locked">Vuoi rispondere e guadagnare Aurei? <a href="#" id="ephLoginLink">Accedi</a>.</p>`;
   el.innerHTML=`
-    <p class="eph-quote">«${e.testo}»</p>
-    <p class="eph-question">${e.domanda}</p>
-    <div class="eph-options">${opzioniHTML}</div>
-    ${esitoHTML}`;
+    <div class="eph-scroll">
+      <div class="eph-scroll-roll"></div>
+      <div class="eph-scroll-body">
+        <p class="eph-quote">«${e.testo}»</p>
+        <p class="eph-question">${e.domanda}</p>
+        <div class="eph-options">${opzioniHTML}</div>
+        ${lockedHTML}
+      </div>
+      <div class="eph-scroll-roll"></div>
+    </div>`;
   document.getElementById('ephLoginLink')?.addEventListener('click',ev=>{ev.preventDefault();openAuth('login');});
 }
 document.getElementById('ephemerisBody').addEventListener('click',async ev=>{
+  const openBtn=ev.target.closest('#ephScrollOpen');
+  if(openBtn){
+    ephemerisOpened=true;
+    renderEphemeris();
+    return;
+  }
   const btn=ev.target.closest('.eph-option');
   if(!btn||!ephemerisState||ephemerisState.gia_risposto)return;
   if(!currentUser){openAuth('login');return;}
