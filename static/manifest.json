@@ -1,14 +1,16 @@
 {
-  "name": "La biblioteca di Babele",
-  "short_name": "Babele",
-  "description": "Cerca libri nelle biblioteche della Rete Bibliotecaria Bresciana e Cremonese",
+  "name": "La Biblioteca Aeterna, dove i grandi classici non muoiono mai",
+  "short_name": "Biblioteca Aeterna",
+  "description": "Scopri la Biblioteca Aeterna, un luogo virtuale dove i grandi classici della letteratura vivono per sempre. Esplora e immergiti nelle opere che hanno plasmato la cultura e l'immaginazione umana.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a3a1c",
-  "theme_color": "#1a3a1c",
+  "background_color": "#0b0906",
+  "theme_color": "#0b0906",
   "orientation": "portrait",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
