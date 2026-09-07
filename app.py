@@ -252,11 +252,19 @@ def init_db():
             # "libreria", perché una nota può riferirsi anche a un'opera
             # trovata su Alexandria (non presente in nessun catalogo curato
             # lato server).
+            #
+            # 'sessione' (sessione di lettura giornaliera) è un tipo di nota
+            # come gli altri, non una tabella a parte: stesso ragionamento
+            # già fatto per i traguardi del Pantheon, si riusa quello che
+            # c'è invece di inventare un modello dati parallelo. A
+            # differenza degli altri tipi, una sessione DEVE avere un
+            # book_id (vedi crea_nota_scriptorium) e concede Aurei/XP fissi,
+            # con un limite di una al giorno per libro (vedi stesso punto).
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS scriptorium (
                     id SERIAL PRIMARY KEY,
                     utente_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
-                    tipo VARCHAR(16) NOT NULL CHECK (tipo IN ('nota','citazione','recensione','riflessione')),
+                    tipo VARCHAR(16) NOT NULL CHECK (tipo IN ('nota','citazione','recensione','riflessione','sessione')),
                     book_id TEXT,
                     titolo_libro TEXT,
                     autore_libro TEXT,
@@ -266,6 +274,18 @@ def init_db():
                     creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     aggiornato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
+            """)
+            # Migrazione incrementale: sulle installazioni già esistenti la
+            # CREATE TABLE IF NOT EXISTS qui sopra non aggiorna un vincolo
+            # CHECK già presente senza 'sessione'. Il nome qui sotto è quello
+            # che Postgres assegna di default a un CHECK inline su questa
+            # colonna ("<tabella>_<colonna>_check"); se il DB è stato creato
+            # con questo stesso file non fa differenza, l'operazione è
+            # idempotente.
+            cur.execute("ALTER TABLE scriptorium DROP CONSTRAINT IF EXISTS scriptorium_tipo_check;")
+            cur.execute("""
+                ALTER TABLE scriptorium ADD CONSTRAINT scriptorium_tipo_check
+                CHECK (tipo IN ('nota','citazione','recensione','riflessione','sessione'));
             """)
 
             # Reset password: token monouso con scadenza (stessa logica del
@@ -902,15 +922,30 @@ def rispondi_discussione(did):
 # "spazio intimo" dell'utente descritto nel documento di gamification, non
 # ha senso restituire dati di un utente a un altro né a un ospite.
 
-SCRIPTORIUM_TIPI = ("nota", "citazione", "recensione", "riflessione")
+SCRIPTORIUM_TIPI = ("nota", "citazione", "recensione", "riflessione", "sessione")
+
+# Ricompensa fissa per ogni sessione di lettura registrata — intenzionalmente
+# più piccola di quella dell'Ephemeris (10 Aurei base): qui l'obiettivo è
+# premiare un'abitudine quotidiana che può ripetersi su più libri diversi lo
+# stesso giorno (vedi il controllo "una al giorno per libro, non in totale"
+# più sotto), non un singolo enigma unico per tutti.
+SESSIONE_AUREI = 5
+SESSIONE_XP    = 3
 
 def _pulisci_scriptorium_input(d):
     """Valida e normalizza i campi comuni a creazione/modifica di una nota.
-    Ritorna (valori, None) oppure (None, messaggio_errore)."""
+    Ritorna (valori, None) oppure (None, messaggio_errore). Per le sessioni
+    di lettura il testo è facoltativo (è una spunta quotidiana, non serve
+    per forza un pensiero scritto): se assente viene sostituito da un testo
+    segnaposto, così la colonna "testo" può restare NOT NULL senza doverne
+    fare un caso speciale in tutto il resto del codice."""
     tipo = (d.get("tipo") or "").strip()
     if tipo not in SCRIPTORIUM_TIPI:
         return None, "Tipo non valido"
-    testo, err = _valida_testo(d.get("testo"), "Il testo", 5000)
+    testo_raw = (d.get("testo") or "").strip()
+    if tipo == "sessione" and not testo_raw:
+        testo_raw = "Sessione di lettura registrata."
+    testo, err = _valida_testo(testo_raw, "Il testo", 5000)
     if err:
         return None, err
     titolo = (d.get("titolo") or "").strip()[:200] or None
@@ -941,6 +976,23 @@ def crea_nota_scriptorium():
     cover_libro   = (d.get("cover_libro") or "").strip() or None
 
     db = get_db()
+
+    # Le sessioni di lettura sono l'unico tipo di nota per cui il libro non
+    # è facoltativo: una sessione "senza libro" non avrebbe senso. Il limite
+    # è una sessione al giorno PER LIBRO (non totale): si possono registrare
+    # più libri diversi nello stesso giorno, ognuno con la sua ricompensa.
+    if valori["tipo"] == "sessione":
+        if not book_id:
+            return jsonify({"error": "Seleziona il libro a cui riferisci questa sessione."}), 400
+        oggi = _utcnow().date()
+        gia_oggi = db.execute(
+            "SELECT id FROM scriptorium WHERE utente_id=%s AND tipo='sessione' "
+            "AND book_id=%s AND creato_il::date=%s",
+            (u["id"], book_id, oggi)
+        ).fetchone()
+        if gia_oggi:
+            return jsonify({"error": "Hai già registrato una sessione di lettura per questo libro oggi."}), 409
+
     cur = db.execute(
         """
         INSERT INTO scriptorium
@@ -952,6 +1004,15 @@ def crea_nota_scriptorium():
     )
     row = dict(cur.fetchone())
     db.commit()
+
+    # Solo le sessioni concedono Aurei/XP: le altre note (citazioni,
+    # recensioni, riflessioni) restano gratuite, come già erano. Il frontend
+    # legge "economia" dalla risposta solo quando presente, per aggiornare
+    # subito il saldo mostrato in nav senza una chiamata separata.
+    if valori["tipo"] == "sessione":
+        riga_economia = accredita_economia(db, u["id"], aurei=SESSIONE_AUREI, xp=SESSIONE_XP)
+        row["economia"] = _serializza_economia(riga_economia)
+
     return jsonify(row)
 
 @app.route("/api/scriptorium/<int:nid>", methods=["PUT"])
@@ -961,7 +1022,7 @@ def modifica_nota_scriptorium(nid):
     d = request.get_json() or {}
     db = get_db()
     riga = db.execute(
-        "SELECT id FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"])
+        "SELECT id, tipo FROM scriptorium WHERE id=%s AND utente_id=%s", (nid, u["id"])
     ).fetchone()
     if not riga:
         return jsonify({"error": "Nota non trovata"}), 404
@@ -969,6 +1030,13 @@ def modifica_nota_scriptorium(nid):
     valori, err = _pulisci_scriptorium_input(d)
     if err:
         return jsonify({"error": err}), 400
+    # Il tipo 'sessione' si crea solo tramite POST (richiede un libro, un
+    # limite giornaliero e concede Aurei): modificarne una esistente in
+    # 'sessione' aggirerebbe tutti e tre i controlli, quindi non è permesso.
+    # Il contrario (rinominare una sessione in un altro tipo) resta invece
+    # ammesso, non essendoci nulla da aggirare in quel verso.
+    if valori["tipo"] == "sessione" and riga["tipo"] != "sessione":
+        return jsonify({"error": "Le sessioni di lettura si registrano dalla Home, non si possono creare modificando una nota."}), 400
 
     db.execute(
         "UPDATE scriptorium SET tipo=%s, titolo=%s, testo=%s, aggiornato_il=CURRENT_TIMESTAMP "
