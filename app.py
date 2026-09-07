@@ -150,6 +150,14 @@ def init_db():
                     creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
             """)
+            # 'nome' resta il nome privato dell'utente (mai mostrato ad altri
+            # utenti); 'nickname' è invece l'identità pubblica, usata in
+            # Agorà (autore_nome) e nel nav/avatar. Migrazione incrementale
+            # per le installazioni già esistenti: la colonna viene aggiunta
+            # e, dove assente, viene riempita col nome attuale come punto di
+            # partenza ragionevole — l'utente potrà poi cambiarla a piacere.
+            cur.execute("ALTER TABLE utenti ADD COLUMN IF NOT EXISTS nickname VARCHAR(255);")
+            cur.execute("UPDATE utenti SET nickname = nome WHERE nickname IS NULL;")
 
             # Libreria personale: un solo stato per libro per utente, come
             # nel frontend (aeterna_libreria). book_id è testo libero perché
@@ -439,21 +447,24 @@ def registra():
     d = request.get_json() or {}
     email    = (d.get("email") or "").strip().lower()
     nome     = (d.get("nome") or "").strip()
+    nickname = (d.get("nickname") or "").strip()
     password = d.get("password") or ""
 
-    if not email or not nome or not password:
+    if not email or not nome or not nickname or not password:
         return jsonify({"error": "Tutti i campi sono obbligatori"}), 400
     if not EMAIL_RE.match(email):
         return jsonify({"error": "Email non valida"}), 400
     if len(password) < 6:
         return jsonify({"error": "La password deve avere almeno 6 caratteri"}), 400
+    if len(nickname) > 60:
+        return jsonify({"error": "Il nickname è troppo lungo (massimo 60 caratteri)"}), 400
 
     pw_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     db = get_db()
     try:
         cur = db.execute(
-            "INSERT INTO utenti (email, nome, password) VALUES (%s, %s, %s) RETURNING id",
-            (email, nome, pw_hash)
+            "INSERT INTO utenti (email, nome, nickname, password) VALUES (%s, %s, %s, %s) RETURNING id",
+            (email, nome, nickname, pw_hash)
         )
         uid = cur.fetchone()["id"]
         db.commit()
@@ -466,7 +477,7 @@ def registra():
 
     session["uid"] = uid
     session.permanent = True
-    return jsonify({"ok": True, "nome": nome, "email": email, "obiettivo_annuale": 12})
+    return jsonify({"ok": True, "nome": nome, "nickname": nickname, "email": email, "obiettivo_annuale": 12})
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
@@ -479,7 +490,7 @@ def login():
     session["uid"] = u["id"]
     session.permanent = True
     return jsonify({
-        "ok": True, "nome": u["nome"], "email": u["email"],
+        "ok": True, "nome": u["nome"], "nickname": u["nickname"] or u["nome"], "email": u["email"],
         "obiettivo_annuale": u["obiettivo_annuale"],
     })
 
@@ -496,6 +507,7 @@ def me():
     return jsonify({
         "autenticato": True,
         "nome": u["nome"],
+        "nickname": u["nickname"] or u["nome"],
         "email": u["email"],
         "obiettivo_annuale": u["obiettivo_annuale"],
     })
@@ -520,6 +532,31 @@ def cambia_password():
     db.execute("UPDATE utenti SET password=%s WHERE id=%s", (pw_hash, u["id"]))
     db.commit()
     return jsonify({"ok": True})
+
+@app.route("/api/auth/profilo", methods=["PUT"])
+@login_richiesto
+def modifica_profilo():
+    """Modifica nome privato e/o nickname pubblico. Il nickname è quello
+    mostrato ad altri utenti (Agorà, nav): cambiarlo qui NON aggiorna
+    retroattivamente l'autore_nome "congelato" sulle discussioni/risposte
+    già pubblicate (stesso principio già documentato per Agorà in
+    init_db), solo quelle future lo useranno."""
+    u = utente_corrente()
+    d = request.get_json() or {}
+    nome     = (d.get("nome") or "").strip()
+    nickname = (d.get("nickname") or "").strip()
+
+    if not nome or not nickname:
+        return jsonify({"error": "Nome e nickname sono obbligatori"}), 400
+    if len(nome) > 255:
+        return jsonify({"error": "Il nome è troppo lungo"}), 400
+    if len(nickname) > 60:
+        return jsonify({"error": "Il nickname è troppo lungo (massimo 60 caratteri)"}), 400
+
+    db = get_db()
+    db.execute("UPDATE utenti SET nome=%s, nickname=%s WHERE id=%s", (nome, nickname, u["id"]))
+    db.commit()
+    return jsonify({"ok": True, "nome": nome, "nickname": nickname})
 
 @app.route("/api/auth/password-dimenticata", methods=["POST"])
 def password_dimenticata():
@@ -968,7 +1005,7 @@ def crea_discussione():
     db = get_db()
     cur = db.execute(
         "INSERT INTO discussioni (utente_id, autore_nome, titolo, corpo) VALUES (%s,%s,%s,%s) RETURNING *",
-        (u["id"], u["nome"], titolo, corpo)
+        (u["id"], u["nickname"] or u["nome"], titolo, corpo)
     )
     row = dict(cur.fetchone())
     db.commit()
@@ -994,7 +1031,7 @@ def rispondi_discussione(did):
 
     cur = db.execute(
         "INSERT INTO risposte (discussione_id, utente_id, autore_nome, testo) VALUES (%s,%s,%s,%s) RETURNING *",
-        (did, u["id"], u["nome"], testo)
+        (did, u["id"], u["nickname"] or u["nome"], testo)
     )
     row = dict(cur.fetchone())
     db.commit()
