@@ -1148,17 +1148,17 @@ body.splash-lock{overflow:hidden}
           <h3>Tabellarium</h3>
           <p>Il tuo passaporto letterario. Colleziona timbri di visita e le cartoline d'epoca dell'Epistolarium.</p>
         </a>
-        <a class="feature" href="#" data-nav="alexandria">
-          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.3"/><path d="m20 20-4.3-4.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></div>
-          <p class="eyebrow">La grande ricerca</p>
-          <h3>Alexandria</h3>
-          <p>Esplora milioni di opere. Cerca autori, titoli e correnti nel catalogo infinito di Alexandria.</p>
+        <a class="feature" href="#" data-nav="agora">
+          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 5h16v11H8l-4 4V5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+          <p class="eyebrow">Il luogo del dibattito</p>
+          <h3>Agorà</h3>
+          <p>Confrontati con altri lettori. Apri una discussione o rispondi a chi sta già parlando di libri.</p>
         </a>
-        <a class="feature" href="#" data-nav="pantheon">
-          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="5" stroke="currentColor" stroke-width="1.3"/><path d="M8.5 12.5 7 21l5-2.5 5 2.5-1.5-8.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
-          <p class="eyebrow">Il tempio dei traguardi</p>
-          <h3>Pantheon</h3>
-          <p>Ogni lettura ti avvicina all'immortalità. Sblocca traguardi ed entra nel Pantheon dei lettori.</p>
+        <a class="feature" href="#" data-nav="scriptorium">
+          <div class="feature-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v18l-6-4-6 4V3Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+          <p class="eyebrow">Il tuo taccuino privato</p>
+          <h3>Scriptorium</h3>
+          <p>Citazioni preferite, recensioni e riflessioni di fine lettura. Solo tu puoi vederle.</p>
         </a>
       </div>
     </div>
@@ -1776,8 +1776,15 @@ async function eseguiLogout(){
 
 /* ── CTA banner in fondo alla home: cambia a seconda del login ── */
 function renderCta(){
-  const el=document.getElementById('ctaActions');
   const u=getUser();
+
+  // Stesso stato letto anche dal pulsante hero in cima alla Home: qui
+  // dentro renderCta() perché è già chiamata ad ogni cambio di stato
+  // login/logout/avvio, senza bisogno di un altro punto di aggancio.
+  const btnHero=document.getElementById('btnEnterLibrary');
+  if(btnHero)btnHero.textContent=u?'Visita il Pantheon →':'Entra nella biblioteca →';
+
+  const el=document.getElementById('ctaActions');
   if(u){
     el.innerHTML=`<button class="btn btn-gold" data-nav="pantheon">Vai al tuo Pantheon →</button>`;
     el.querySelector('button').addEventListener('click',()=>navigate('pantheon'));
