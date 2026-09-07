@@ -649,47 +649,63 @@ body.splash-lock{overflow:hidden}
    (bloccato) a inciso e riempito d'oro (sbloccato). Il progresso non è
    una barra piatta ma una scanalatura che si riempie di luce.
    ══════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════
+   TRAGUARDI — steli di marmo incise nel muro del tempio. A differenza
+   della Vetrina (l'oggetto posseduto, la medaglia in bacheca), qui il
+   traguardo è scolpito per sempre nella pietra: dal marmo grezzo e
+   spento (bloccato) al marmo venato d'oro, con l'incisione riempita
+   (sbloccato). Il progresso non è una barra piatta ma una scanalatura
+   che si riempie di luce, come se la luce scorresse nell'incavo dello
+   scalpello. La sagoma è quella classica della lapide/stele: cima ad
+   arco, base piatta — riconoscibile a colpo d'occhio, in netto
+   contrasto (chiaro su scuro) col resto della pagina.
+   ══════════════════════════════════════════════════════════════════ */
 .stele-card{
-  --r:0deg;position:relative;padding:34px 26px 28px;transform:rotate(var(--r));transition:transform .25s ease,border-color .2s;
-  clip-path:polygon(5% 0%,95% 0%,100% 5%,100% 95%,95% 100%,5% 100%,0% 95%,0% 5%);
-  border:1px solid rgba(255,255,255,.08);
+  --r:0deg;position:relative;padding:44px 26px 26px;transform:rotate(var(--r));
+  transition:transform .25s ease,box-shadow .2s;
+  border-radius:70px 70px 5px 5px;
+  border:1px solid rgba(0,0,0,.3);
   background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 7px),
-    radial-gradient(120% 60% at 20% -10%,rgba(255,255,255,.05),transparent 60%),
-    linear-gradient(165deg,#2a2620,#17140f 70%);
+    linear-gradient(122deg,transparent 0%,transparent 38%,rgba(80,75,62,.3) 39%,transparent 40%,transparent 55%,rgba(80,75,62,.22) 56%,transparent 57%,transparent 82%,rgba(80,75,62,.16) 83%,transparent 84%),
+    linear-gradient(35deg,transparent 0%,transparent 64%,rgba(60,56,46,.22) 65%,transparent 66%),
+    linear-gradient(160deg,#dcd6c6 0%,#bcb5a0 55%,#948d78 100%);
+  box-shadow:0 12px 20px rgba(0,0,0,.4),inset 0 2px 2px rgba(255,255,255,.5),inset 0 -14px 18px rgba(0,0,0,.14);
 }
 .stele-card:hover{transform:rotate(0deg)}
 .stele-card.unlocked{
-  border-color:rgba(201,162,39,.35);
-  box-shadow:inset 0 0 40px rgba(201,162,39,.07);
+  border-color:rgba(120,80,10,.4);
   background:
-    repeating-linear-gradient(115deg,rgba(255,255,255,.018) 0 2px,transparent 2px 7px),
-    radial-gradient(120% 60% at 20% -10%,rgba(226,193,92,.12),transparent 60%),
-    linear-gradient(165deg,#332a1a,#1c160c 70%);
+    linear-gradient(122deg,transparent 0%,transparent 38%,rgba(201,162,39,.42) 39%,transparent 40%,transparent 55%,rgba(226,193,92,.3) 56%,transparent 57%,transparent 82%,rgba(201,162,39,.22) 83%,transparent 84%),
+    linear-gradient(35deg,transparent 0%,transparent 64%,rgba(226,193,92,.3) 65%,transparent 66%),
+    linear-gradient(160deg,#f6ecc9 0%,#e0c47c 55%,#b48d3c 100%);
+  box-shadow:0 12px 26px rgba(201,162,39,.3),inset 0 2px 2px rgba(255,250,225,.6),inset 0 -14px 20px rgba(110,74,8,.2);
 }
-.stele-tier{position:absolute;top:14px;right:16px;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
-.stele-tier.on-bronze{color:#c08a52}
-.stele-tier.on-silver{color:#c7ccd1}
-.stele-tier.on-gold{color:var(--gold-2)}
-.stele-tier.on-platinum{color:#a9d6e5}
+.stele-tier{position:absolute;top:18px;right:22px;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(58,53,42,.55)}
+.stele-tier.on-bronze{color:#8a5323}
+.stele-tier.on-silver{color:#5c5c5c}
+.stele-tier.on-gold{color:#8a6a10}
+.stele-tier.on-platinum{color:#2f6270}
 .stele-icon-well{
-  width:56px;height:56px;margin:0 auto 18px;border-radius:50%;font-size:1.5rem;color:var(--ink-3);
+  width:56px;height:56px;margin:0 auto 18px;border-radius:50%;font-size:1.5rem;color:#57503f;
   display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 35% 30%,rgba(0,0,0,.55),rgba(0,0,0,.15) 70%);
-  box-shadow:inset 0 3px 6px rgba(0,0,0,.6),inset 0 -2px 3px rgba(255,255,255,.04);
+  background:radial-gradient(circle at 35% 28%,rgba(255,255,255,.6),rgba(0,0,0,.12) 75%);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.4),inset 0 -2px 2px rgba(255,255,255,.55);
 }
 .stele-card.unlocked .stele-icon-well{
-  color:var(--gold-2);
-  box-shadow:inset 0 2px 4px rgba(0,0,0,.4),inset 0 -2px 3px rgba(255,255,255,.06),0 0 18px rgba(201,162,39,.4);
+  color:#78500c;
+  box-shadow:inset 0 2px 3px rgba(110,74,8,.45),inset 0 -2px 2px rgba(255,246,214,.7),0 0 14px rgba(201,162,39,.4);
 }
-.stele-title{font-family:var(--serif);text-align:center;font-size:1.05rem;color:var(--ink-3);letter-spacing:.01em;margin-bottom:8px;text-shadow:0 1px 0 rgba(0,0,0,.6)}
-.stele-card.unlocked .stele-title{color:var(--gold-2);text-shadow:0 0 14px rgba(226,193,92,.35),0 1px 0 rgba(0,0,0,.5)}
-.stele-desc{color:var(--ink-3);font-size:.8rem;line-height:1.55;text-align:center;margin-bottom:22px;min-height:42px}
-.stele-card.unlocked .stele-desc{color:var(--ink-2)}
-.stele-groove{position:relative;height:6px;border-radius:2px;background:rgba(0,0,0,.5);box-shadow:inset 0 1px 3px rgba(0,0,0,.8),inset 0 -1px 0 rgba(255,255,255,.03);overflow:hidden}
-.stele-groove-fill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,rgba(226,193,92,.35),var(--gold-2));box-shadow:0 0 9px rgba(226,193,92,.65);transition:width .6s cubic-bezier(.16,1,.3,1)}
-.stele-count{display:block;text-align:center;margin-top:10px;font-size:.7rem;letter-spacing:.03em;color:var(--ink-3)}
-.stele-card.unlocked .stele-count{color:var(--gold-2)}
+.stele-title{
+  font-family:var(--serif);text-align:center;font-size:1.05rem;color:#45402f;letter-spacing:.01em;margin-bottom:8px;
+  text-shadow:0 1px 0 rgba(255,255,255,.55),0 -1px 1px rgba(0,0,0,.28);
+}
+.stele-card.unlocked .stele-title{color:#6b4a0c;text-shadow:0 1px 0 rgba(255,248,220,.7),0 -1px 1px rgba(90,58,4,.35)}
+.stele-desc{color:rgba(58,53,42,.72);font-size:.8rem;line-height:1.55;text-align:center;margin-bottom:20px;min-height:42px}
+.stele-card.unlocked .stele-desc{color:rgba(94,62,10,.8)}
+.stele-groove{position:relative;height:6px;border-radius:2px;background:rgba(0,0,0,.3);box-shadow:inset 0 1px 3px rgba(0,0,0,.55);overflow:hidden}
+.stele-groove-fill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,rgba(201,162,39,.55),#c9a227);box-shadow:0 0 8px rgba(201,162,39,.65);transition:width .6s cubic-bezier(.16,1,.3,1)}
+.stele-count{display:block;text-align:center;margin-top:10px;font-size:.7rem;letter-spacing:.03em;color:rgba(58,53,42,.62)}
+.stele-card.unlocked .stele-count{color:#7a4f0c;font-weight:600}
 
 /* ══════════════════════════════════════════════════════════════════
    ALEXANDRIA
