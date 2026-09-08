@@ -764,14 +764,39 @@ body.splash-lock{overflow:hidden}
   box-shadow:0 12px 20px rgba(0,0,0,.4),inset 0 2px 2px rgba(255,255,255,.5),inset 0 -14px 18px rgba(0,0,0,.14);
 }
 .stele-card:hover{transform:rotate(0deg)}
+/* Palette per-tier: variabili CSS impostate dal blocco base (gold, il
+   comportamento di sempre) e sovrascritte dalle classi .tier-* aggiunte
+   dal JS accanto a .unlocked (vedi renderPantheon in fondo al file).
+   --stele-glow/--stele-border/--stele-text-rgb sono triplette "R,G,B"
+   (senza rgba()) così da poter comporre trasparenze diverse nei vari
+   punti (bordo, bagliore, testo attenuato) con una sola variabile. */
 .stele-card.unlocked{
-  border-color:rgba(120,80,10,.4);
+  --stele-light:#f6ecc9; --stele-mid:#e0c47c; --stele-dark:#b48d3c;
+  --stele-glow:201,162,39; --stele-border:110,74,8;
+  --stele-text:#6b4a0c; --stele-text-rgb:107,74,12;
+  border-color:rgba(var(--stele-border),.4);
   background:
-    linear-gradient(122deg,transparent 0%,transparent 38%,rgba(201,162,39,.42) 39%,transparent 40%,transparent 55%,rgba(226,193,92,.3) 56%,transparent 57%,transparent 82%,rgba(201,162,39,.22) 83%,transparent 84%),
-    linear-gradient(35deg,transparent 0%,transparent 64%,rgba(226,193,92,.3) 65%,transparent 66%),
-    linear-gradient(160deg,#f6ecc9 0%,#e0c47c 55%,#b48d3c 100%);
-  box-shadow:0 12px 26px rgba(201,162,39,.3),inset 0 2px 2px rgba(255,250,225,.6),inset 0 -14px 20px rgba(110,74,8,.2);
+    linear-gradient(122deg,transparent 0%,transparent 38%,rgba(var(--stele-glow),.42) 39%,transparent 40%,transparent 55%,rgba(var(--stele-glow),.3) 56%,transparent 57%,transparent 82%,rgba(var(--stele-glow),.22) 83%,transparent 84%),
+    linear-gradient(35deg,transparent 0%,transparent 64%,rgba(var(--stele-glow),.3) 65%,transparent 66%),
+    linear-gradient(160deg,var(--stele-light) 0%,var(--stele-mid) 55%,var(--stele-dark) 100%);
+  box-shadow:0 12px 26px rgba(var(--stele-glow),.3),inset 0 2px 2px rgba(255,250,225,.6),inset 0 -14px 20px rgba(var(--stele-border),.2);
 }
+.stele-card.unlocked.tier-bronze{
+  --stele-light:#e8cba3; --stele-mid:#c0854f; --stele-dark:#7a4a24;
+  --stele-glow:192,133,79; --stele-border:106,63,24;
+  --stele-text:#6b3f18; --stele-text-rgb:107,63,24;
+}
+.stele-card.unlocked.tier-silver{
+  --stele-light:#f0f3f5; --stele-mid:#c7ccd1; --stele-dark:#83898f;
+  --stele-glow:170,178,186; --stele-border:70,76,82;
+  --stele-text:#454b50; --stele-text-rgb:69,75,80;
+}
+.stele-card.unlocked.tier-platinum{
+  --stele-light:#eaf6fb; --stele-mid:#b9dce8; --stele-dark:#6f9aab;
+  --stele-glow:127,168,184; --stele-border:47,98,112;
+  --stele-text:#255766; --stele-text-rgb:37,87,102;
+}
+/* .tier-gold non serve: coincide con i valori di default sopra */
 .stele-tier{position:absolute;top:18px;right:22px;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:rgba(58,53,42,.55)}
 .stele-tier.on-bronze{color:#8a5323}
 .stele-tier.on-silver{color:#5c5c5c}
@@ -784,20 +809,21 @@ body.splash-lock{overflow:hidden}
   box-shadow:inset 0 2px 3px rgba(0,0,0,.4),inset 0 -2px 2px rgba(255,255,255,.55);
 }
 .stele-card.unlocked .stele-icon-well{
-  color:#78500c;
-  box-shadow:inset 0 2px 3px rgba(110,74,8,.45),inset 0 -2px 2px rgba(255,246,214,.7),0 0 14px rgba(201,162,39,.4);
+  color:var(--stele-text);
+  box-shadow:inset 0 2px 3px rgba(var(--stele-border),.45),inset 0 -2px 2px rgba(255,246,214,.7),0 0 14px rgba(var(--stele-glow),.4);
 }
 .stele-title{
   font-family:var(--serif);text-align:center;font-size:1.05rem;color:#45402f;letter-spacing:.01em;margin-bottom:8px;
   text-shadow:0 1px 0 rgba(255,255,255,.55),0 -1px 1px rgba(0,0,0,.28);
 }
-.stele-card.unlocked .stele-title{color:#6b4a0c;text-shadow:0 1px 0 rgba(255,248,220,.7),0 -1px 1px rgba(90,58,4,.35)}
+.stele-card.unlocked .stele-title{color:var(--stele-text);text-shadow:0 1px 0 rgba(255,248,220,.7),0 -1px 1px rgba(var(--stele-border),.5)}
 .stele-desc{color:rgba(58,53,42,.72);font-size:.8rem;line-height:1.55;text-align:center;margin-bottom:20px;min-height:42px}
-.stele-card.unlocked .stele-desc{color:rgba(94,62,10,.8)}
+.stele-card.unlocked .stele-desc{color:rgba(var(--stele-text-rgb),.8)}
 .stele-groove{position:relative;height:6px;border-radius:2px;background:rgba(0,0,0,.3);box-shadow:inset 0 1px 3px rgba(0,0,0,.55);overflow:hidden}
 .stele-groove-fill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,rgba(201,162,39,.55),#c9a227);box-shadow:0 0 8px rgba(201,162,39,.65);transition:width .6s cubic-bezier(.16,1,.3,1)}
+.stele-card.unlocked .stele-groove-fill{background:linear-gradient(90deg,rgba(var(--stele-glow),.55),rgb(var(--stele-glow)));box-shadow:0 0 8px rgba(var(--stele-glow),.65)}
 .stele-count{display:block;text-align:center;margin-top:10px;font-size:.7rem;letter-spacing:.03em;color:rgba(58,53,42,.62)}
-.stele-card.unlocked .stele-count{color:#7a4f0c;font-weight:600}
+.stele-card.unlocked .stele-count{color:var(--stele-text);font-weight:600}
 
 /* ══════════════════════════════════════════════════════════════════
    ALEXANDRIA
@@ -2904,7 +2930,7 @@ function renderPantheon(){
     const icona=ACH_ICONS[a.id]||'✦';
     const rot=(stampAngle(a.id)/3).toFixed(2);
     return `
-    <div class="stele-card${unlocked?' unlocked':''}" style="--r:${rot}deg">
+    <div class="stele-card${unlocked?' unlocked tier-'+a.tier:''}" style="--r:${rot}deg">
       <div class="stele-tier${unlocked?' on-'+a.tier:''}">${TIER_LABEL[a.tier]}</div>
       <div class="stele-icon-well">${icona}</div>
       <div class="stele-title">${a.title}</div>
