@@ -2900,41 +2900,6 @@ function alexDedupTitoli(docs){
   });
 }
 
-/* Risolve la query in un autore reale del catalogo (se esiste) e ne
-   restituisce la bibliografia autentica via /search.json?author_key=... —
-   filtrata per ID autore esatto, non per testo, quindi a prescindere da
-   come viene trascritto il suo nome nella query (es. "Dostoevskij" in
-   italiano risolve comunque alla persona giusta, perché qui cerchiamo la
-   PERSONA — usando la ricerca autori dedicata, che conosce le varianti del
-   nome — e non il testo letterale nei libri). Usare l'author_key (non
-   works.json) ci dà anche i campi language/edition_count, necessari per
-   il filtro lingua e la scelta dell'edizione più diffusa. Ritorna null se
-   la query non sembra un nome d'autore (es. è un titolo come "Hamlet").
-   Fonte verificata: developer center Open Library. */
-async function cercaBibliografiaAutore(q){
-  const rAutore=await fetch(
-    `https://openlibrary.org/search/authors.json?${new URLSearchParams({q,limit:'1'})}`,
-    {signal:AbortSignal.timeout(9000)}
-  );
-  if(!rAutore.ok)return null;
-  const dAutore=await rAutore.json();
-  const autore=(dAutore.docs||[])[0];
-  if(!autore||!autore.key||!autore.work_count)return null;
-
-  const rOpere=await fetch(
-    `https://openlibrary.org/search.json?${new URLSearchParams({
-      author_key:autore.key,limit:'100',
-      fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
-    })}`,
-    {signal:AbortSignal.timeout(9000)}
-  );
-  if(!rOpere.ok)return null;
-  const docs=(await rOpere.json()).docs||[];
-  const perLingua=filtraPerLinguaPreferita(docs.filter(d=>d.title));
-  const ordinati=perLingua.sort((a,b)=>(b.edition_count||0)-(a.edition_count||0));
-  return alexDedupTitoli(ordinati).map(normalizeDoc);
-}
-
 async function searchAlexandria(q){
   q=q.trim();
   if(!q)return;
@@ -2942,49 +2907,26 @@ async function searchAlexandria(q){
   const wrap=document.getElementById('alexResultsWrap');
   wrap.innerHTML=`<div class="alex-state">Ricerca in corso tra i grandi classici…</div>`;
   try{
-    // 1) Prima si prova a risolvere la query come nome di un autore reale:
-    //    se ci riesce, la bibliografia restituita è già SOLO farina del suo
-    //    sacco (niente biografie o saggi critici SU di lui), in una sola
-    //    lingua per opera, senza doppioni (vedi cercaBibliografiaAutore).
-    let risultati=null;
-    try{
-      risultati=await cercaBibliografiaAutore(q);
-    }catch(err){
-      console.error('cercaBibliografiaAutore',err); // si prova comunque la ricerca generale qui sotto
-    }
-
-    // 2) Se non è un nome d'autore riconosciuto (es. un titolo come
-    //    "Hamlet", o un argomento), si ricade sulla ricerca generale
-    //    full-text, con lo stesso filtro di pertinenza/lingua/doppioni.
-    if(!risultati||!risultati.length){
-      const params=new URLSearchParams({
-        q,limit:'60',
-        fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
-      });
-      const r=await fetch(`https://openlibrary.org/search.json?${params}`,{signal:AbortSignal.timeout(9000)});
-      if(!r.ok)throw new Error('http '+r.status);
-      const d=await r.json();
-      const qLower=q.toLowerCase();
-      const pertinenti=(d.docs||[]).filter(doc=>{
-        const rl=alexRilevanza(doc,qLower);
-        return rl.inTitolo||rl.inAutore;
-      });
-      const perLingua=filtraPerLinguaPreferita(pertinenti);
-      const ordinati=perLingua.sort((a,b)=>{
-        const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
-        if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
-        if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
-        return(b.edition_count||0)-(a.edition_count||0);
-      });
-      risultati=alexDedupTitoli(ordinati).slice(0,24).map(normalizeDoc);
-    }else{
-      // Bibliografia d'autore: ordine cronologico (le opere senza data nota
-      // vanno in fondo), un ordine naturale per sfogliare un'intera opera.
-      risultati=risultati
-        .sort((a,b)=>(a.y??Infinity)-(b.y??Infinity)||a.t.localeCompare(b.t))
-        .slice(0,60);
-    }
-    alexResults=risultati;
+    const params=new URLSearchParams({
+      q,limit:'60',
+      fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
+    });
+    const r=await fetch(`https://openlibrary.org/search.json?${params}`,{signal:AbortSignal.timeout(9000)});
+    if(!r.ok)throw new Error('http '+r.status);
+    const d=await r.json();
+    const qLower=q.toLowerCase();
+    const pertinenti=(d.docs||[]).filter(doc=>{
+      const rl=alexRilevanza(doc,qLower);
+      return rl.inTitolo||rl.inAutore;
+    });
+    const perLingua=filtraPerLinguaPreferita(pertinenti);
+    const ordinati=perLingua.sort((a,b)=>{
+      const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
+      if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
+      if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
+      return(b.edition_count||0)-(a.edition_count||0);
+    });
+    alexResults=alexDedupTitoli(ordinati).slice(0,24).map(normalizeDoc);
   }catch(err){
     console.error('searchAlexandria',err);
     wrap.innerHTML=`<div class="alex-state">⚠ Non sono riuscito a raggiungere il catalogo. Riprova tra poco.</div>`;
