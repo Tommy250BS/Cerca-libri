@@ -223,7 +223,47 @@ body.splash-lock{overflow:hidden}
 .economia-pill .eco-aurei{color:var(--gold-2);font-weight:600;white-space:nowrap}
 .economia-pill .eco-xp{color:var(--ink-2);font-weight:600;white-space:nowrap}
 .economia-pill .eco-streak{color:var(--gold);white-space:nowrap}
+.economia-pill .eco-streak .flame-ico{display:inline-block;animation:flameFlicker 2.4s ease-in-out infinite}
 @media(max-width:520px){.economia-pill{display:none!important}}
+
+/* ══════════════════════════════════════════════════════════════════
+   STREAK — animazioni della fiamma 🔥, condivise tra il pill in nav
+   (.eco-streak) e la pergamena dell'Ephemeris (.eph-pill-streak).
+   1. flameFlicker: tremolio continuo e leggero, sempre attivo, dà vita
+      all'icona senza essere invadente.
+   2. streakPopIn: ingresso "a scatto" quando la pergamena rivela per la
+      prima volta l'esito di oggi (non si ripete se si torna sulla
+      pagina più tardi, vedi ephemerisJustAnswered in JS).
+   3. streakMilestonePulse: bagliore dorato più marcato, riservato ai
+      traguardi multipli di 7 giorni (vedi "traguardo_speciale" dal
+      backend) — la stessa fiamma diventa per un attimo un piccolo
+      evento, non solo un contatore che sale.
+   ══════════════════════════════════════════════════════════════════ */
+@keyframes flameFlicker{
+  0%,100%{transform:scale(1) rotate(0deg)}
+  25%{transform:scale(1.07) rotate(-3deg)}
+  50%{transform:scale(0.97) rotate(2deg)}
+  75%{transform:scale(1.05) rotate(-1deg)}
+}
+@keyframes streakPopIn{
+  0%{transform:scale(0.3) rotate(-10deg);opacity:0}
+  55%{transform:scale(1.18) rotate(5deg);opacity:1}
+  75%{transform:scale(0.94) rotate(-2deg)}
+  100%{transform:scale(1) rotate(0deg)}
+}
+@keyframes streakMilestonePulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(201,162,39,.55)}
+  50%{box-shadow:0 0 0 9px rgba(201,162,39,0)}
+}
+.eph-pill-streak{animation:streakPopIn .55s cubic-bezier(.34,1.56,.64,1) both}
+.eph-pill-streak .flame-ico{display:inline-block;animation:flameFlicker 2.4s ease-in-out infinite}
+.eph-pill-streak.streak-milestone{
+  border-color:rgba(201,162,39,.7);background:rgba(201,162,39,.16);color:#8a5a0c;
+  animation:streakPopIn .55s cubic-bezier(.34,1.56,.64,1) both,streakMilestonePulse 1.6s ease-out 3;
+}
+@media(prefers-reduced-motion:reduce){
+  .economia-pill .eco-streak .flame-ico,.eph-pill-streak,.eph-pill-streak .flame-ico,.eph-pill-streak.streak-milestone{animation:none}
+}
 
 /* ── Toast "+N Aurei" — feedback immediato ogni volta che l'economia si
    accredita (libro completato, nota nello Scriptorium, contributo in
@@ -1911,7 +1951,7 @@ function renderEconomia(){
   el.innerHTML=`
     <span class="eco-aurei">🪙 ${e.aurei}</span>
     <span class="eco-xp">✨ ${e.xp} XP</span>
-    ${e.streak_giorni?`<span class="eco-streak">🔥 ${e.streak_giorni}</span>`:''}`;
+    ${e.streak_giorni?`<span class="eco-streak"><span class="flame-ico">🔥</span> ${e.streak_giorni}</span>`:''}`;
 }
 function resetEconomiaCache(){
   economiaCache={aurei:0,xp:0,livello:'Discepolo',streak_giorni:0};
@@ -1927,14 +1967,16 @@ async function loadEconomia(){
   renderEconomia();
 }
 
-/* ── Toast "+N Aurei" — vedi CSS .aurei-toast-wrap più sopra. Il div
+/* ── Toast generici — vedi CSS .aurei-toast-wrap più sopra. Il div
    contenitore viene creato una volta sola e riusato, i singoli toast si
    rimuovono da soli dopo l'animazione (impostata anche qui in JS come
    rete di sicurezza, non solo via CSS, per non lasciare nodi orfani se
-   l'animationend non dovesse scattare). */
+   l'animationend non dovesse scattare). mostraToast() è il nucleo comune;
+   mostraToastAurei() resta per compatibilità con tutte le chiamate già
+   esistenti nel resto del file (libro completato, note, Agorà, Ephemeris). */
 let aureiToastWrap=null;
-function mostraToastAurei(aurei,motivo){
-  if(!aurei)return;
+function mostraToast(testo){
+  if(!testo)return;
   if(!aureiToastWrap){
     aureiToastWrap=document.createElement('div');
     aureiToastWrap.className='aurei-toast-wrap';
@@ -1943,10 +1985,14 @@ function mostraToastAurei(aurei,motivo){
   }
   const el=document.createElement('div');
   el.className='aurei-toast';
-  const segno=aurei>0?'+':''; // aurei negativo (es. sessione eliminata) porta già il suo '-'
-  el.textContent=`🪙 ${segno}${aurei} Aurei${motivo?' · '+motivo:''}`;
+  el.textContent=testo;
   aureiToastWrap.appendChild(el);
   setTimeout(()=>el.remove(),2700);
+}
+function mostraToastAurei(aurei,motivo){
+  if(!aurei)return;
+  const segno=aurei>0?'+':''; // aurei negativo (es. sessione eliminata) porta già il suo '-'
+  mostraToast(`🪙 ${segno}${aurei} Aurei${motivo?' · '+motivo:''}`);
 }
 
 /* Applica alla cache locale la parte "economia" di una risposta del
@@ -2281,6 +2327,7 @@ function renderEphemeris(){
   // ── Stato 3: già risposto — pergamena srotolata con l'esito ──
   if(e.gia_risposto){
     const streak=economiaCache.streak_giorni||0;
+    const milestone=!!e.traguardo_speciale;
     el.innerHTML=`
       <div class="eph-scroll">
         <div class="eph-scroll-roll"></div>
@@ -2290,8 +2337,9 @@ function renderEphemeris(){
           <p class="eph-reveal-answer">${e.domanda} — <b>${e.opzioni[e.corretta]}</b></p>
           <div class="eph-reward-row">
             <span class="eph-pill eph-pill-aurei">🪙 +${e.aurei_guadagnati} Aurei</span>
-            ${streak?`<span class="eph-pill eph-pill-streak">🔥 ${streak} ${streak===1?'Giorno':'Giorni'} di Sapienza</span>`:''}
+            ${streak?`<span class="eph-pill eph-pill-streak${milestone?' streak-milestone':''}"><span class="flame-ico">🔥</span> ${streak} ${streak===1?'Giorno':'Giorni'} di Sapienza</span>`:''}
           </div>
+          ${milestone?`<p style="text-align:center;color:#8a5a0c;font-size:.8rem;font-weight:600;margin:-8px 0 4px">✦ Enigma Aureo: ricompensa raddoppiata per la costanza!</p>`:''}
           ${e.spiegazione?`<p class="eph-reveal-spiegazione">${e.spiegazione}</p>`:''}
         </div>
         <div class="eph-scroll-roll"></div>
@@ -2346,10 +2394,11 @@ document.getElementById('ephemerisBody').addEventListener('click',async ev=>{
     const res=await apiFetch('/api/ephemeris/rispondi',{method:'POST',body:JSON.stringify({opzione:i})});
     ephemerisState={...ephemerisState,gia_risposto:true,opzione_scelta:i,
       corretto:res.corretto,corretta:res.corretta,spiegazione:res.spiegazione,
-      aurei_guadagnati:res.aurei_guadagnati};
+      aurei_guadagnati:res.aurei_guadagnati,traguardo_speciale:res.traguardo_speciale};
     economiaCache=res.economia;
     renderEconomia();
     renderEphemeris();
+    if(res.traguardo_speciale)mostraToast('🔥 Serie di '+(economiaCache.streak_giorni||0)+' giorni! Costanza da vero Bibliotecario.');
   }catch(err){
     console.error('rispondiEphemeris',err);
   }
