@@ -325,6 +325,29 @@ def init_db():
                 );
             """)
 
+            # Recensioni pubbliche in Agorà: DELIBERATAMENTE una tabella a
+            # parte rispetto a scriptorium (dove "recensione" è un tipo di
+            # nota privata). Una recensione dello Scriptorium può essere
+            # pubblicata qui, ma resta una copia indipendente: modificare o
+            # cancellare la nota privata non tocca la copia pubblica, e
+            # viceversa — stesso principio già usato per autore_nome
+            # "congelato" in discussioni/risposte. voto è opzionale (1-5),
+            # per chi vuole dare un giudizio sintetico oltre al testo.
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS recensioni_pubbliche (
+                    id SERIAL PRIMARY KEY,
+                    utente_id INTEGER NOT NULL REFERENCES utenti(id) ON DELETE CASCADE,
+                    autore_nome TEXT NOT NULL,
+                    book_id TEXT NOT NULL,
+                    titolo_libro TEXT NOT NULL,
+                    autore_libro TEXT NOT NULL DEFAULT '',
+                    cover_libro TEXT,
+                    voto SMALLINT CHECK (voto IS NULL OR (voto BETWEEN 1 AND 5)),
+                    testo TEXT NOT NULL,
+                    creato_il TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
 init_db()
 
 # ── Helpers auth ─────────────────────────────────────────────────────────
@@ -991,11 +1014,16 @@ def get_discussione(did):
     return jsonify(out)
 
 def _premia_contributo_agora(db, utente_id):
-    """Premia un contributo in Agorà (discussione o risposta) entro un tetto
-    giornaliero condiviso tra le due tabelle — il conteggio va fatto DOPO
-    l'inserimento del contributo corrente, così include anche quello appena
-    creato. Ritorna (aurei_guadagnati, economia_serializzata_o_None)."""
-    n_oggi = _conta_oggi(db, "discussioni", utente_id) + _conta_oggi(db, "risposte", utente_id)
+    """Premia un contributo in Agorà (discussione, risposta o recensione
+    pubblicata) entro un tetto giornaliero condiviso tra le tre tabelle — il
+    conteggio va fatto DOPO l'inserimento del contributo corrente, così
+    include anche quello appena creato. Ritorna (aurei_guadagnati,
+    economia_serializzata_o_None)."""
+    n_oggi = (
+        _conta_oggi(db, "discussioni", utente_id)
+        + _conta_oggi(db, "risposte", utente_id)
+        + _conta_oggi(db, "recensioni_pubbliche", utente_id)
+    )
     if n_oggi > CAP_CONTRIBUTI_AGORA_AL_GIORNO:
         return 0, None
     riga_economia = accredita_economia(
@@ -1052,6 +1080,81 @@ def rispondi_discussione(did):
     if economia:
         row["economia"] = economia
     return jsonify(row)
+
+# ── API Recensioni pubbliche (Agorà) ──────────────────────────────────────
+# Lettura libera per tutti (anche ospiti), come le discussioni: le
+# recensioni pubbliche sono contenuto della vetrina comune di Agorà, non un
+# dato privato. Includiamo "mia" solo quando l'utente è loggato, per far
+# vedere al frontend quali recensioni può eliminare senza dover confrontare
+# nickname (che non sono univoci come autore_nome "congelato" suggerisce).
+
+@app.route("/api/recensioni", methods=["GET"])
+def get_recensioni_pubbliche():
+    db = get_db()
+    rows = db.execute("""
+        SELECT id, utente_id, autore_nome, book_id, titolo_libro, autore_libro,
+               cover_libro, voto, testo, creato_il
+        FROM recensioni_pubbliche
+        ORDER BY creato_il DESC
+    """).fetchall()
+    u = utente_corrente()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["mia"] = bool(u) and d["utente_id"] == u["id"]
+        del d["utente_id"]
+        out.append(d)
+    return jsonify(out)
+
+@app.route("/api/recensioni", methods=["POST"])
+@login_richiesto
+def crea_recensione_pubblica():
+    u = utente_corrente()
+    d = request.get_json() or {}
+    testo, err = _valida_testo(d.get("testo"), "La recensione", 5000)
+    if err:
+        return jsonify({"error": err}), 400
+    book_id = (d.get("book_id") or "").strip()
+    titolo_libro = (d.get("titolo_libro") or "").strip()
+    if not book_id or not titolo_libro:
+        return jsonify({"error": "Seleziona il libro a cui si riferisce la recensione."}), 400
+    autore_libro = (d.get("autore_libro") or "").strip()
+    cover_libro = (d.get("cover_libro") or "").strip() or None
+
+    voto = d.get("voto")
+    try:
+        voto = int(voto) if voto not in (None, "") else None
+        if voto is not None and not (1 <= voto <= 5):
+            voto = None
+    except (TypeError, ValueError):
+        voto = None
+
+    db = get_db()
+    cur = db.execute(
+        """
+        INSERT INTO recensioni_pubbliche
+            (utente_id, autore_nome, book_id, titolo_libro, autore_libro, cover_libro, voto, testo)
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *
+        """,
+        (u["id"], u["nickname"] or u["nome"], book_id, titolo_libro, autore_libro, cover_libro, voto, testo)
+    )
+    row = dict(cur.fetchone())
+    db.commit()
+    row["mia"] = True
+    del row["utente_id"]
+    row["aurei_guadagnati"], economia = _premia_contributo_agora(db, u["id"])
+    if economia:
+        row["economia"] = economia
+    return jsonify(row)
+
+@app.route("/api/recensioni/<int:rid>", methods=["DELETE"])
+@login_richiesto
+def elimina_recensione_pubblica(rid):
+    u = utente_corrente()
+    db = get_db()
+    db.execute("DELETE FROM recensioni_pubbliche WHERE id=%s AND utente_id=%s", (rid, u["id"]))
+    db.commit()
+    return jsonify({"ok": True})
 
 # ── API Scriptorium (diario personale: citazioni, recensioni, riflessioni) ──
 # A differenza di Agorà, qui login_richiesto vale anche in lettura: è lo
