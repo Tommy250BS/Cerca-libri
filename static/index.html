@@ -65,19 +65,16 @@ h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 .btn-quiet:hover{color:var(--ink)}
 
 /* ══════════════════════════════════════════════════════════════════
-   SPLASH SCREEN — un libro chiuso si apre sul proprio dorso, un bagliore
-   dorato esplode da dentro le pagine e dissolve nell'app. Compare una sola
-   volta per sessione di navigazione (sessionStorage), non ad ogni
-   navigazione interna della SPA.
+   SPLASH SCREEN — una copertina di libro a schermo intero si apre come una
+   porta sul proprio dorso, rivelando l'app direttamente dietro di sé
+   (nessun bagliore, nessun passaggio intermedio). Compare una sola volta
+   per sessione di navigazione (sessionStorage), non ad ogni navigazione
+   interna della SPA.
    ══════════════════════════════════════════════════════════════════ */
 body.splash-lock{overflow:hidden}
 .splash{
-  position:fixed;inset:0;z-index:3000;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;
-  background:
-    radial-gradient(circle at 50% 45%,rgba(201,162,39,.08),transparent 60%),
-    #0b0906;
-  transition:opacity .8s ease;
+  position:fixed;inset:0;z-index:3000;
+  perspective:2200px; /* la prospettiva vive sul contenitore: la copertina riempie tutto */
 }
 .splash-skip{
   position:absolute;right:28px;bottom:26px;z-index:5;
@@ -86,71 +83,43 @@ body.splash-lock{overflow:hidden}
 }
 .splash-skip:hover{color:var(--ink-2)}
 
-/* ── Il bagliore che esplode da dentro il libro: un cerchio di luce che
-   parte piccolo, al centro, e si espande fino a coprire tutto lo schermo
-   proprio mentre la copertina ruota oltre la metà della sua apertura. ── */
-.splash-glow{
-  position:absolute;left:50%;top:50%;width:60px;height:60px;border-radius:50%;
-  background:radial-gradient(circle,#f6e7b8 0%,#e2c15c 32%,#c9a227 55%,transparent 72%);
-  transform:translate(-50%,-50%) scale(0);opacity:0;will-change:transform,opacity;
-}
-
-/* ── Il libro: due strati sovrapposti — le pagine (sempre visibili, sotto)
-   e la copertina (sopra, che ruota sul dorso sinistro come un vero libro).
-   perspective sul contenitore dà profondità alla rotazione 3D. ── */
-.splash-book{
-  position:relative;z-index:2;width:clamp(160px,32vw,230px);height:clamp(220px,44vw,310px);
-  perspective:1500px;
-}
-.book-pages{
-  position:absolute;inset:0;border-radius:2px 7px 7px 2px;
-  background:
-    repeating-linear-gradient(90deg,rgba(44,32,19,.08) 0,rgba(44,32,19,.08) 1px,transparent 1px,transparent 4px),
-    #efe3c4;
-  box-shadow:inset 0 0 34px rgba(44,32,19,.22);
-}
+/* ── La copertina: un unico pannello a schermo intero, cardine sul bordo
+   sinistro (transform-origin), che ruota come una porta rivelando l'app
+   dietro di sé. backface-visibility nasconde il retro quando supera i
+   90°, quindi l'app sotto appare naturalmente, senza bisogno di dissolvenze
+   separate. ── */
 .book-cover{
-  position:absolute;inset:0;border-radius:2px 7px 7px 2px;
-  transform-origin:left center;transform:rotateY(0deg);
-  background:linear-gradient(155deg,#3d1a18,#200d0c);
-  border:1px solid rgba(201,162,39,.38);
-  box-shadow:0 18px 46px rgba(0,0,0,.6);
+  position:fixed;inset:0;transform-origin:left center;transform:rotateY(0deg);
+  background:
+    radial-gradient(circle at 30% 32%,rgba(201,162,39,.08),transparent 60%),
+    linear-gradient(155deg,#3d1a18,#1b0c0a 60%,#100806);
   backface-visibility:hidden;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
 }
 .book-cover::before{ /* cornice interna dorata, come le altre copertine dell'app */
-  content:'';position:absolute;inset:9px;border:1px solid rgba(201,162,39,.24);border-radius:1px 5px 5px 1px;pointer-events:none;
+  content:'';position:absolute;inset:22px;border:1px solid rgba(201,162,39,.22);pointer-events:none;
 }
-.book-cover-emblem{color:var(--gold-2);filter:drop-shadow(0 2px 6px rgba(201,162,39,.35))}
+.book-cover-emblem{color:var(--gold-2);filter:drop-shadow(0 3px 10px rgba(201,162,39,.35))}
+.book-cover-emblem svg{width:clamp(40px,6vw,60px);height:auto}
 .book-cover-title{
   font-family:'Alex Brush',cursive;font-weight:400;color:var(--gold-2);
-  font-size:clamp(1.6rem,5.2vw,2.1rem);line-height:1;text-align:center;padding:0 12px;
+  font-size:clamp(2.6rem,9vw,4.6rem);line-height:1;text-align:center;padding:0 24px;
 }
 
-/* ── Sequenza: 1) breve istante a libro chiuso, 2) la copertina si apre e
-   il bagliore esplode, 3) tutto lo schermo sfuma rivelando l'app sotto. ── */
+/* ── Sequenza: 1) breve istante a copertina chiusa, 2) la porta si apre
+   ruotando fino a sparire, rivelando l'app dietro. ── */
 .splash.opening-book .book-cover{
-  animation:splashBookOpen 1s cubic-bezier(.65,0,.35,1) .35s forwards;
-}
-.splash.opening-book .splash-glow{
-  animation:splashGlowBurst 1.5s cubic-bezier(.22,.61,.36,1) .75s forwards;
+  animation:splashBookOpen 1.15s cubic-bezier(.7,0,.3,1) .35s forwards;
 }
 @keyframes splashBookOpen{
   0%{transform:rotateY(0deg)}
-  100%{transform:rotateY(-155deg)}
+  100%{transform:rotateY(-115deg)}
 }
-@keyframes splashGlowBurst{
-  0%{transform:translate(-50%,-50%) scale(0);opacity:.95}
-  60%{opacity:1}
-  100%{transform:translate(-50%,-50%) scale(26);opacity:1}
-}
-.splash.opening{opacity:0}
+.splash.opening{opacity:0;transition:opacity .35s ease}
 .splash.opening .splash-skip{opacity:0;pointer-events:none}
 
 @media(prefers-reduced-motion:reduce){
-  .splash.opening-book .book-cover,.splash.opening-book .splash-glow{animation:none}
-  .splash.opening-book .splash-glow{opacity:1;transform:translate(-50%,-50%) scale(26)}
-  .splash{transition:opacity .5s ease}
+  .splash.opening-book .book-cover{animation:none;transform:rotateY(-115deg)} /* già "aperta": si passa dritti alla dissolvenza */
 }
 /* ══════════════════════════════════════════════════════════════════
    NAV
@@ -1089,19 +1058,15 @@ body.splash-lock{overflow:hidden}
 
 <!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
 <div class="splash" id="splashScreen" aria-hidden="true">
-  <div class="splash-glow" id="splashGlow"></div>
-  <div class="splash-book">
-    <div class="book-pages"></div>
-    <div class="book-cover" id="splashBookCover">
-      <svg class="book-cover-emblem" width="34" height="37" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
-        <line x1="16" y1="8" x2="2" y2="22"/>
-        <line x1="17.5" y1="15" x2="9" y2="15"/>
-        <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
-        <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
-      </svg>
-      <div class="book-cover-title">Biblioteca Aeterna</div>
-    </div>
+  <div class="book-cover" id="splashBookCover">
+    <svg class="book-cover-emblem" width="52" height="56" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
+      <line x1="16" y1="8" x2="2" y2="22"/>
+      <line x1="17.5" y1="15" x2="9" y2="15"/>
+      <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
+      <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
+    </svg>
+    <div class="book-cover-title">Biblioteca Aeterna</div>
   </div>
   <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
 </div>
@@ -1782,12 +1747,12 @@ body.splash-lock{overflow:hidden}
    navigazione interna della SPA. Rispetta prefers-reduced-motion e offre
    un pulsante "Salta" per chi non vuole aspettare.
 
-   Sequenza (durata totale ~3s, escluso il tempo di attesa font):
-   1) 0.0s–0.35s: il libro chiuso resta fermo un istante (respiro iniziale)
-   2) 0.35s–1.35s: la copertina ruota sul dorso (splashBookOpen)
-   3) 0.75s–2.25s: il bagliore esplode da dentro (splashGlowBurst),
-      parte a metà dell'apertura per un buon aggancio visivo
-   4) ~2.3s: l'intera splash sfuma in dissolvenza, rivelando l'app
+   Sequenza (durata totale ~1.9s, escluso il tempo di attesa font):
+   1) 0.0s–0.35s: la copertina chiusa resta ferma un istante (respiro iniziale)
+   2) 0.35s–1.5s: la copertina ruota sul dorso come una porta (splashBookOpen),
+      rivelando l'app dietro di sé man mano che supera i 90°
+   3) ~1.5s: la splash (ormai vuota, solo il pulsante "Salta" residuo)
+      sfuma e viene rimossa dal DOM
    ══════════════════════════════════════════════════════════════════ */
 (function initSplash(){
   const splash=document.getElementById('splashScreen');
@@ -1816,9 +1781,9 @@ body.splash-lock{overflow:hidden}
   document.getElementById('splashSkip').addEventListener('click',finish);
 
   if(reduceMotion){
-    // Niente rotazione 3D né bagliore animato: il libro appare già aperto
-    // (vedi CSS reduced-motion), breve pausa e via in dissolvenza semplice.
-    setTimeout(finish,700);
+    // Niente rotazione 3D: la copertina è già "aperta" (invisibile, vedi
+    // CSS reduced-motion), breve pausa e via in dissolvenza semplice.
+    setTimeout(finish,500);
     return;
   }
 
@@ -1831,11 +1796,12 @@ body.splash-lock{overflow:hidden}
     start();
   }
 
-  // Il bagliore (ultima animazione della sequenza, vedi CSS: parte a .75s
-  // e dura 1.5s) è il segnale più affidabile di "scena conclusa": alla sua
-  // fine si passa alla dissolvenza finale.
+  // Fine della rotazione della copertina (unica animazione rimasta nella
+  // sequenza, vedi CSS): l'app è già visibile da un pezzo a questo punto
+  // (la copertina sparisce già oltre i 90°, per via di backface-visibility),
+  // qui si toglie solo l'ultimo residuo (il pulsante "Salta") in dissolvenza.
   splash.addEventListener('animationend',e=>{
-    if(e.animationName==='splashGlowBurst')finish();
+    if(e.animationName==='splashBookOpen')finish();
   });
 })();
 /* ══════════════════════════════════════════════════════════════════
