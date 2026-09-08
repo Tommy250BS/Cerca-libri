@@ -1068,20 +1068,73 @@ body.splash-lock{overflow:hidden}
 .reply-bar button:hover{filter:brightness(1.08)}
 
 /* ══════════════════════════════════════════════════════════════════
-   SCRIPTORIUM
+   SCRIPTORIUM — pagina di diario. Diverso di proposito sia dalla
+   pergamena dell'Ephemeris (rotolo che si apre) sia dalla pagina dello
+   splash (foglio che si volta in 3D): qui ogni nota è un foglio
+   STACCATO da un quaderno a spirale — fori perforati in alto, righe
+   quadernate, margine rosso verticale, data scritta a mano — un
+   oggetto fermo sulla scrivania, non un'animazione d'ingresso.
+   Ogni pagina ha una lieve rotazione casuale (stessa tecnica di
+   stampAngle già usata per stele/timbri) come fogli lasciati cadere
+   uno sull'altro, e si raddrizza al passaggio del mouse.
    ══════════════════════════════════════════════════════════════════ */
-.scriptorium-list{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
-.scriptorium-card{background:var(--bg);padding:30px 34px;transition:background .15s}
-.scriptorium-card:hover{background:var(--bg-2)}
-.scriptorium-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:12px}
-.scriptorium-tipo{font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-2)}
-.scriptorium-libro{font-size:.78rem;color:var(--ink-3);font-style:italic;margin-top:4px}
-.scriptorium-actions{display:flex;gap:4px;flex-shrink:0}
-.scriptorium-actions button{background:none;border:none;color:var(--ink-3);padding:4px 8px;font-size:.78rem;transition:color .15s}
-.scriptorium-actions button:hover{color:var(--ink)}
-.scriptorium-title{font-family:var(--serif);font-size:1.2rem;color:var(--ink);margin-bottom:8px}
-.scriptorium-testo{color:var(--ink-2);font-size:.92rem;line-height:1.65;white-space:pre-wrap}
-.scriptorium-date{margin-top:14px;font-size:.7rem;color:var(--ink-3);letter-spacing:.05em}
+.scriptorium-list{display:flex;flex-direction:column;gap:38px;padding-top:6px}
+.diario-page{
+  --r:0deg;position:relative;transform:rotate(var(--r));
+  transition:transform .2s ease,box-shadow .2s;
+  padding:36px 34px 30px 68px;border-radius:2px;color:#3d3324;
+  background:
+    repeating-linear-gradient(180deg,transparent,transparent 27px,rgba(70,108,158,.16) 27px,rgba(70,108,158,.16) 28px),
+    linear-gradient(90deg,transparent 0,transparent 52px,rgba(168,58,52,.4) 52px,rgba(168,58,52,.4) 53px,transparent 53px),
+    #f4efe0;
+  box-shadow:0 10px 22px rgba(0,0,0,.35),inset 0 0 40px rgba(60,45,20,.07);
+}
+.diario-page:hover{transform:rotate(0deg);box-shadow:0 16px 32px rgba(0,0,0,.48),inset 0 0 40px rgba(60,45,20,.07)}
+@media(max-width:640px){.diario-page{padding:30px 20px 26px 46px}}
+/* fori perforati del quaderno a spirale, lungo il bordo superiore: il
+   colore scuro corrisponde allo sfondo della pagina, così sembrano
+   veri "buchi" che lasciano intravedere ciò che sta sotto. */
+.diario-page::before{
+  content:'';position:absolute;top:-12px;left:24px;right:24px;height:24px;
+  background-image:radial-gradient(circle,var(--bg) 0 6px,transparent 6.5px);
+  background-size:32px 24px;background-repeat:repeat-x;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.4));pointer-events:none;
+}
+@media(max-width:640px){.diario-page::before{left:16px;right:16px}}
+/* linguetta colorata di tipo, come un separatore adesivo sul bordo */
+.diario-tab{
+  position:absolute;top:20px;right:-8px;padding:6px 16px 6px 13px;
+  font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+  clip-path:polygon(0 0,100% 0,90% 50%,100% 100%,0 100%);
+  box-shadow:2px 3px 6px rgba(0,0,0,.32);white-space:nowrap;
+}
+.diario-tab.tipo-citazione{background:#d8c15a;color:#3d3324}
+.diario-tab.tipo-recensione{background:#9c4a1f;color:#f4efe3}
+.diario-tab.tipo-riflessione{background:#6f8f6a;color:#f4efe3}
+.diario-tab.tipo-sessione{background:#4f7196;color:#f4efe3}
+.diario-tab.tipo-nota{background:#b7ae9f;color:#3d3324}
+.diario-data{font-family:'Caveat',cursive;font-size:1.3rem;color:#6b5636;line-height:1;margin-bottom:6px}
+.diario-libro{
+  display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#6b5636;font-style:italic;
+  margin-bottom:16px;padding-bottom:10px;border-bottom:1px dashed rgba(44,32,19,.28);
+}
+.diario-titolo{font-family:var(--serif);font-size:1.28rem;color:#2c2013;margin-bottom:10px}
+.diario-testo{font-size:.96rem;line-height:1.75;white-space:pre-wrap;color:#3d3324}
+.diario-actions{display:flex;gap:4px;margin-top:20px;justify-content:flex-end}
+.diario-actions button{
+  background:none;border:none;color:rgba(61,51,36,.5);padding:5px 9px;
+  font-family:var(--sans);font-size:.72rem;font-weight:600;transition:color .15s;
+}
+.diario-actions button:hover{color:#3d3324}
+/* diario chiuso — stato vuoto, al posto del generico placeholder testuale */
+.diario-vuoto{
+  max-width:320px;margin:30px auto;padding:50px 32px;text-align:center;position:relative;
+  background:linear-gradient(155deg,#3d1a18,#200d0c);border:1px solid rgba(201,162,39,.3);
+  border-radius:3px 10px 10px 3px;box-shadow:0 16px 34px rgba(0,0,0,.5);
+}
+.diario-vuoto::before{content:'';position:absolute;left:16px;top:0;bottom:0;width:1px;background:rgba(201,162,39,.22)}
+.diario-vuoto-lock{font-size:1.9rem;margin-bottom:18px;color:var(--gold-2)}
+.diario-vuoto p{color:rgba(226,193,92,.75);font-style:italic;font-size:.92rem;line-height:1.65}
 .field select{
   width:100%;padding:12px 14px;background:var(--bg);border:1px solid var(--line-strong);color:var(--ink);
   font-family:var(--sans);font-size:.92rem;border-radius:var(--radius);transition:border-color .15s;
@@ -3462,6 +3515,7 @@ function eliminaNotaScriptorium(id){
 }
 
 const SCRIPTORIUM_TIPO_LABEL={nota:'Nota libera',citazione:'Citazione',recensione:'Recensione',riflessione:'Riflessione',sessione:'Sessione di lettura'};
+const SCRIPTORIUM_TIPO_ICON={nota:'📌',citazione:'🖋️',recensione:'⭐',riflessione:'🌿',sessione:'📖'};
 let scriptoriumFilter='tutte';
 let scriptoriumEditId=null;
 
@@ -3472,25 +3526,32 @@ function renderScriptorium(){
   if(!list)return;
   const note=getScriptorium().filter(n=>scriptoriumFilter==='tutte'||n.tipo===scriptoriumFilter);
   if(!note.length){
-    list.innerHTML=`<div class="alex-state">Nessuna nota qui, per ora. Scrivi la tua prima citazione o riflessione.</div>`;
+    list.innerHTML=`
+      <div class="diario-vuoto">
+        <div class="diario-vuoto-lock">🔒</div>
+        <p>Il tuo diario è ancora chiuso.<br>Scrivi qui la tua prima citazione o riflessione.</p>
+      </div>`;
     return;
   }
-  list.innerHTML=`<div class="scriptorium-list">${note.map(n=>`
-    <div class="scriptorium-card" data-id="${n.id}">
-      <div class="scriptorium-top">
-        <div>
-          <div class="scriptorium-tipo">${SCRIPTORIUM_TIPO_LABEL[n.tipo]||n.tipo}</div>
-          ${n.titolo_libro?`<div class="scriptorium-libro">📖 ${escapeHtml(n.titolo_libro)}${n.autore_libro?' · '+escapeHtml(n.autore_libro):''}</div>`:''}
-        </div>
-        <div class="scriptorium-actions">
-          <button data-edit="${n.id}">Modifica</button>
-          <button data-delete="${n.id}">Elimina</button>
-        </div>
+  list.innerHTML=`<div class="scriptorium-list">${note.map(n=>{
+    // Stessa tecnica di rotazione "a caso ma stabile" già usata per steli
+    // e timbri (stampAngle, definita più sotto nel file — disponibile qui
+    // per hoisting): ogni pagina ha un'inclinazione leggermente diversa,
+    // come fogli veri lasciati cadere uno sull'altro sulla scrivania.
+    const rot=(stampAngle('diario'+n.id)/2.5).toFixed(2);
+    return `
+    <div class="diario-page" data-id="${n.id}" style="--r:${rot}deg">
+      <div class="diario-tab tipo-${n.tipo}">${SCRIPTORIUM_TIPO_ICON[n.tipo]||'✎'} ${SCRIPTORIUM_TIPO_LABEL[n.tipo]||n.tipo}</div>
+      <div class="diario-data">${new Date(n.creato_il).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}</div>
+      ${n.titolo_libro?`<div class="diario-libro">📎 ${escapeHtml(n.titolo_libro)}${n.autore_libro?' · '+escapeHtml(n.autore_libro):''}</div>`:''}
+      ${n.titolo?`<div class="diario-titolo">${escapeHtml(n.titolo)}</div>`:''}
+      <div class="diario-testo">${escapeHtml(n.testo)}</div>
+      <div class="diario-actions">
+        <button data-edit="${n.id}">Modifica</button>
+        <button data-delete="${n.id}">Elimina</button>
       </div>
-      ${n.titolo?`<div class="scriptorium-title">${escapeHtml(n.titolo)}</div>`:''}
-      <div class="scriptorium-testo">${escapeHtml(n.testo)}</div>
-      <div class="scriptorium-date">${new Date(n.creato_il).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}</div>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>`;
 }
 document.getElementById('scriptoriumTabs').addEventListener('click',e=>{
   const tab=e.target.closest('.status-tab');
