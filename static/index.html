@@ -221,6 +221,7 @@ body.splash-lock{overflow:hidden}
 .economia-pill{display:none;align-items:center;gap:8px;padding:7px 14px;border:1px solid var(--line);font-size:.82rem;color:var(--ink-2);flex-shrink:0}
 .economia-pill.show{display:flex}
 .economia-pill .eco-aurei{color:var(--gold-2);font-weight:600;white-space:nowrap}
+.economia-pill .eco-xp{color:var(--ink-2);font-weight:600;white-space:nowrap}
 .economia-pill .eco-streak{color:var(--gold);white-space:nowrap}
 @media(max-width:520px){.economia-pill{display:none!important}}
 
@@ -1459,10 +1460,20 @@ body.splash-lock{overflow:hidden}
           <h1>Agorà</h1>
         </div>
         <button class="btn btn-gold" id="btnNewThread">+ Nuova discussione</button>
+        <button class="btn btn-gold" id="btnNewRecensionePubblica" style="display:none">+ Nuova recensione</button>
       </div>
     </div>
     <div class="wrap section">
-      <div class="threads" id="threadsList"><!-- popolato da JS --></div>
+      <div class="status-tabs" id="agoraTabs">
+        <button class="status-tab active" data-view="discussioni">Discussioni</button>
+        <button class="status-tab" data-view="recensioni">Recensioni</button>
+      </div>
+      <div class="pantheon-subview active" id="agoraViewDiscussioni">
+        <div class="threads" id="threadsList"><!-- popolato da JS --></div>
+      </div>
+      <div class="pantheon-subview" id="agoraViewRecensioni">
+        <div class="reviews" id="recensioniPubblicheGrid"><!-- popolato da JS --></div>
+      </div>
     </div>
   </section>
 
@@ -1621,6 +1632,40 @@ body.splash-lock{overflow:hidden}
     </div>
     <div class="modal-actions">
       <button class="btn btn-gold" id="newThreadSubmit" style="justify-content:center">Pubblica</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AGORÀ: nuova recensione pubblica ═══════════════ -->
+<div class="modal-overlay" id="newRecensionePubblicaOverlay">
+  <div class="modal">
+    <button class="modal-close" id="newRecensionePubblicaClose" aria-label="Chiudi">✕</button>
+    <h2>Nuova recensione</h2>
+    <p class="modal-sub">Condividi con la comunità cosa hai pensato di un libro.</p>
+    <p class="auth-error" id="newRecensionePubblicaError" style="display:none"></p>
+    <div class="field">
+      <label>Libro</label>
+      <select id="newRecensionePubblicaLibro">
+        <option value="">— Scegli un libro dalla tua biblioteca —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Voto (opzionale)</label>
+      <select id="newRecensionePubblicaVoto">
+        <option value="">— Nessun voto —</option>
+        <option value="5">★★★★★ (5)</option>
+        <option value="4">★★★★☆ (4)</option>
+        <option value="3">★★★☆☆ (3)</option>
+        <option value="2">★★☆☆☆ (2)</option>
+        <option value="1">★☆☆☆☆ (1)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Recensione</label>
+      <textarea id="newRecensionePubblicaTesto" rows="5" placeholder="Cosa ti ha colpito di questo libro?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" id="newRecensionePubblicaSubmit" style="justify-content:center">Pubblica recensione</button>
     </div>
   </div>
 </div>
@@ -1818,6 +1863,7 @@ async function eseguiLogout(){
   resetEconomiaCache();
   resetAgoraStatsCache();
   loadEphemeris();
+  loadRecensioniPubbliche(); // ricarica per aggiornare i flag "mia" (nessuna recensione eliminabile da ospite)
   navigate('home');
 }
 
@@ -1864,6 +1910,7 @@ function renderEconomia(){
   const e=economiaCache;
   el.innerHTML=`
     <span class="eco-aurei">🪙 ${e.aurei}</span>
+    <span class="eco-xp">✨ ${e.xp} XP</span>
     ${e.streak_giorni?`<span class="eco-streak">🔥 ${e.streak_giorni}</span>`:''}`;
 }
 function resetEconomiaCache(){
@@ -2065,6 +2112,7 @@ document.getElementById('authSubmit').addEventListener('click',async()=>{
     await loadEconomia();
     await loadAgoraStats();
     await loadEphemeris();
+    await loadRecensioniPubbliche();
     closeAuth();
     offerGuestMigration();
     // Niente più navigate('pantheon') qui: dopo il login/registrazione si
@@ -3829,6 +3877,118 @@ document.getElementById('newThreadSubmit').addEventListener('click',async()=>{
 });
 
 /* ══════════════════════════════════════════════════════════════════
+   AGORÀ — sotto-schede Discussioni / Recensioni. Le recensioni qui
+   mostrate sono copie pubbliche indipendenti (tabella recensioni_pubbliche),
+   distinte dalle recensioni private dello Scriptorium: pubblicarne una non
+   tocca né crea automaticamente la nota privata corrispondente, e
+   viceversa — stessa indipendenza già scelta lato backend.
+   ══════════════════════════════════════════════════════════════════ */
+let agoraView='discussioni';
+function renderAgoraTabsUI(){
+  document.querySelectorAll('#agoraTabs .status-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===agoraView));
+  document.getElementById('agoraViewDiscussioni').classList.toggle('active',agoraView==='discussioni');
+  document.getElementById('agoraViewRecensioni').classList.toggle('active',agoraView==='recensioni');
+  document.getElementById('btnNewThread').style.display=agoraView==='discussioni'?'inline-flex':'none';
+  document.getElementById('btnNewRecensionePubblica').style.display=agoraView==='recensioni'?'inline-flex':'none';
+}
+document.getElementById('agoraTabs').addEventListener('click',e=>{
+  const tab=e.target.closest('.status-tab');
+  if(!tab)return;
+  agoraView=tab.dataset.view;
+  renderAgoraTabsUI();
+});
+renderAgoraTabsUI(); // stato iniziale coerente anche prima di navigare in Agorà
+
+let recensioniPubblicheCache=[];
+async function loadRecensioniPubbliche(){
+  try{
+    recensioniPubblicheCache=await apiFetch('/api/recensioni');
+  }catch(err){
+    console.error('loadRecensioniPubbliche',err);
+    recensioniPubblicheCache=[];
+  }
+  renderRecensioniPubbliche();
+}
+function renderRecensioniPubbliche(){
+  const grid=document.getElementById('recensioniPubblicheGrid');
+  if(!grid)return;
+  if(!recensioniPubblicheCache.length){
+    grid.innerHTML=`<div class="alex-state" style="grid-column:1/-1">Nessuna recensione pubblica ancora. Sii il primo a condividerne una.</div>`;
+    return;
+  }
+  grid.innerHTML=recensioniPubblicheCache.map(r=>`
+    <div class="review" data-id="${r.id}">
+      <span class="quote-mark">&rdquo;</span>
+      <p class="review-txt">${escapeHtml(r.testo)}</p>
+      <div class="review-foot">
+        <div class="review-who">
+          <div class="review-avatar">${escapeHtml((r.autore_nome||'?')[0])}</div>
+          <div class="review-name"><b>${escapeHtml(r.autore_nome)}</b> · ${escapeHtml(r.titolo_libro)}</div>
+        </div>
+        ${r.voto?`<div class="review-stars">${'★'.repeat(r.voto)}${'☆'.repeat(5-r.voto)}</div>`:''}
+      </div>
+      ${r.mia?`<button class="btn-quiet" data-delete-recensione="${r.id}" style="margin-top:14px">Elimina</button>`:''}
+    </div>`).join('');
+}
+document.getElementById('recensioniPubblicheGrid').addEventListener('click',e=>{
+  const del=e.target.closest('[data-delete-recensione]');
+  if(!del)return;
+  const id=parseInt(del.dataset.deleteRecensione,10);
+  if(!confirm('Eliminare questa recensione pubblica? L\u2019azione non si può annullare.'))return;
+  recensioniPubblicheCache=recensioniPubblicheCache.filter(r=>r.id!==id);
+  renderRecensioniPubbliche();
+  apiFetch('/api/recensioni/'+id,{method:'DELETE'}).catch(err=>console.error('eliminaRecensionePubblica',err));
+});
+
+function popolaSelectLibriRecensione(){
+  const sel=document.getElementById('newRecensionePubblicaLibro');
+  const lib=getLibrary();
+  // Solo i libri già segnati come "letto": ha poco senso recensire
+  // pubblicamente un'opera non ancora finita.
+  const voci=Object.entries(lib)
+    .filter(([,e])=>e.stato==='letto')
+    .map(([id,e])=>`<option value="${id}">${escapeHtml(e.titolo)}${e.autore?' — '+escapeHtml(e.autore):''}</option>`).join('');
+  sel.innerHTML=`<option value="">— Scegli un libro dalla tua biblioteca —</option>${voci}`;
+}
+document.getElementById('btnNewRecensionePubblica').addEventListener('click',()=>{
+  if(!currentUser){openAuth('login');return;}
+  document.getElementById('newRecensionePubblicaError').style.display='none';
+  document.getElementById('newRecensionePubblicaTesto').value='';
+  document.getElementById('newRecensionePubblicaVoto').value='';
+  popolaSelectLibriRecensione();
+  document.getElementById('newRecensionePubblicaOverlay').classList.add('open');
+});
+document.getElementById('newRecensionePubblicaClose').addEventListener('click',()=>document.getElementById('newRecensionePubblicaOverlay').classList.remove('open'));
+document.getElementById('newRecensionePubblicaOverlay').addEventListener('click',e=>{if(e.target.id==='newRecensionePubblicaOverlay')e.currentTarget.classList.remove('open');});
+document.getElementById('newRecensionePubblicaSubmit').addEventListener('click',async()=>{
+  const errEl=document.getElementById('newRecensionePubblicaError');
+  errEl.style.display='none';
+  const bookId=document.getElementById('newRecensionePubblicaLibro').value;
+  const testo=document.getElementById('newRecensionePubblicaTesto').value.trim();
+  const votoRaw=document.getElementById('newRecensionePubblicaVoto').value;
+  if(!bookId){errEl.textContent='Scegli il libro a cui si riferisce la recensione.';errEl.style.display='block';return;}
+  if(!testo){errEl.textContent='La recensione non può essere vuota.';errEl.style.display='block';return;}
+  const libro=getLibrary()[bookId];
+  const btn=document.getElementById('newRecensionePubblicaSubmit');
+  btn.disabled=true;const testoBtn=btn.textContent;btn.textContent='Pubblicazione…';
+  try{
+    const risposta=await apiFetch('/api/recensioni',{method:'POST',body:JSON.stringify({
+      book_id:bookId,titolo_libro:libro?.titolo||'',autore_libro:libro?.autore||'',cover_libro:libro?.cover||'',
+      voto:votoRaw?parseInt(votoRaw,10):null,testo
+    })});
+    document.getElementById('newRecensionePubblicaOverlay').classList.remove('open');
+    await loadRecensioniPubbliche();
+    loadAgoraStats();
+    applicaPremioEconomia(risposta,'Recensione pubblicata');
+  }catch(err){
+    errEl.textContent=err.data?.error||'Impossibile pubblicare la recensione. Riprova.';
+    errEl.style.display='block';
+  }finally{
+    btn.disabled=false;btn.textContent=testoBtn;
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════
    INIT
    ══════════════════════════════════════════════════════════════════
    Ordine: dati "ospite" da localStorage subito disponibili (così la UI
@@ -3876,6 +4036,7 @@ async function initApp(){
   loadGuestData(); // popola anche scriptoriumCache: le sessioni di lettura si leggono da lì
   renderAllViews();
   loadThreads();
+  loadRecensioniPubbliche();
   resetEconomiaCache();
   loadEphemeris();
   await checkAuth();
