@@ -65,89 +65,92 @@ h1,h2,h3{font-family:var(--serif);font-weight:400;letter-spacing:-.01em}
 .btn-quiet:hover{color:var(--ink)}
 
 /* ══════════════════════════════════════════════════════════════════
-   SPLASH SCREEN — piuma che scrive "Biblioteca Aeterna" in corsivo,
-   poi apertura a tendina (come una copertina di libro) verso l'app.
+   SPLASH SCREEN — un libro chiuso si apre sul proprio dorso, un bagliore
+   dorato esplode da dentro le pagine e dissolve nell'app. Compare una sola
+   volta per sessione di navigazione (sessionStorage), non ad ogni
+   navigazione interna della SPA.
    ══════════════════════════════════════════════════════════════════ */
 body.splash-lock{overflow:hidden}
 .splash{
-  position:fixed;inset:0;z-index:3000;
-  background:#0b0906;
-}
-.splash-panel{
-  position:absolute;top:0;bottom:0;width:50%;
+  position:fixed;inset:0;z-index:3000;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
   background:
-    radial-gradient(circle at 50% 42%,rgba(201,162,39,.07),transparent 60%),
+    radial-gradient(circle at 50% 45%,rgba(201,162,39,.08),transparent 60%),
     #0b0906;
-  transition:transform 1.05s cubic-bezier(.76,0,.24,1);
-  will-change:transform;
-}
-.splash-panel-left{left:0;border-right:1px solid var(--line)}
-.splash-panel-right{right:0}
-.splash-content{
-  position:relative;z-index:2;height:100%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-  transition:opacity .5s ease,transform .5s ease;
-}
-.splash-title-wrap{position:relative;display:inline-block}
-.splash-feather{
-  position:absolute;top:-30px;left:0%;
-  transform:translateX(-30%) rotate(-14deg);
-  filter:drop-shadow(0 3px 10px rgba(201,162,39,.3));
-}
-.splash-title{
-  font-family:'Alex Brush',cursive;
-  font-weight:400;
-  font-size:clamp(2.8rem,10vw,5.2rem);
-  color:var(--gold-2);
-  line-height:1;
-  white-space:nowrap;
-  clip-path:inset(0 100% 0 0);
+  transition:opacity .8s ease;
 }
 .splash-skip{
-  position:absolute;right:28px;bottom:26px;z-index:2;
+  position:absolute;right:28px;bottom:26px;z-index:5;
   color:var(--ink-3);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;
-  background:none;border:none;padding:8px;transition:color .15s;
+  background:none;border:none;padding:8px;transition:color .15s,opacity .3s;
 }
 .splash-skip:hover{color:var(--ink-2)}
 
-/* Scrittura: parte quando .splash riceve la classe "writing" */
-.splash.writing .splash-title{
-  animation:splashReveal 2.6s linear forwards;
-}
-.splash.writing .splash-feather{
-  animation:splashFeatherTravel 2.6s linear forwards;
-}
-@keyframes splashReveal{
-  from{clip-path:inset(0 100% 0 0)}
-  to{clip-path:inset(0 0% 0 0)}
-}
-@keyframes splashFeatherTravel{
-  0%{left:0%;transform:translateX(-30%) translateY(0) rotate(-14deg)}
-  8%{transform:translateX(-30%) translateY(-4px) rotate(3deg)}
-  16%{transform:translateX(-30%) translateY(2px) rotate(-12deg)}
-  24%{transform:translateX(-30%) translateY(-3px) rotate(4deg)}
-  32%{transform:translateX(-30%) translateY(2px) rotate(-10deg)}
-  40%{transform:translateX(-30%) translateY(-3px) rotate(3deg)}
-  48%{transform:translateX(-30%) translateY(1px) rotate(-9deg)}
-  56%{transform:translateX(-30%) translateY(-2px) rotate(5deg)}
-  64%{transform:translateX(-30%) translateY(2px) rotate(-11deg)}
-  72%{transform:translateX(-30%) translateY(-3px) rotate(3deg)}
-  80%{transform:translateX(-30%) translateY(1px) rotate(-8deg)}
-  90%{transform:translateX(-30%) translateY(-2px) rotate(2deg)}
-  100%{left:100%;transform:translateX(-30%) translateY(0) rotate(-10deg)}
+/* ── Il bagliore che esplode da dentro il libro: un cerchio di luce che
+   parte piccolo, al centro, e si espande fino a coprire tutto lo schermo
+   proprio mentre la copertina ruota oltre la metà della sua apertura. ── */
+.splash-glow{
+  position:absolute;left:50%;top:50%;width:60px;height:60px;border-radius:50%;
+  background:radial-gradient(circle,#f6e7b8 0%,#e2c15c 32%,#c9a227 55%,transparent 72%);
+  transform:translate(-50%,-50%) scale(0);opacity:0;will-change:transform,opacity;
 }
 
-/* Apertura a tendina: le due metà scorrono via, il contenuto sfuma */
-.splash.opening .splash-panel-left{transform:translateX(-100%)}
-.splash.opening .splash-panel-right{transform:translateX(100%)}
-.splash.opening .splash-content{opacity:0;transform:scale(.95)}
+/* ── Il libro: due strati sovrapposti — le pagine (sempre visibili, sotto)
+   e la copertina (sopra, che ruota sul dorso sinistro come un vero libro).
+   perspective sul contenitore dà profondità alla rotazione 3D. ── */
+.splash-book{
+  position:relative;z-index:2;width:clamp(160px,32vw,230px);height:clamp(220px,44vw,310px);
+  perspective:1500px;
+}
+.book-pages{
+  position:absolute;inset:0;border-radius:2px 7px 7px 2px;
+  background:
+    repeating-linear-gradient(90deg,rgba(44,32,19,.08) 0,rgba(44,32,19,.08) 1px,transparent 1px,transparent 4px),
+    #efe3c4;
+  box-shadow:inset 0 0 34px rgba(44,32,19,.22);
+}
+.book-cover{
+  position:absolute;inset:0;border-radius:2px 7px 7px 2px;
+  transform-origin:left center;transform:rotateY(0deg);
+  background:linear-gradient(155deg,#3d1a18,#200d0c);
+  border:1px solid rgba(201,162,39,.38);
+  box-shadow:0 18px 46px rgba(0,0,0,.6);
+  backface-visibility:hidden;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+}
+.book-cover::before{ /* cornice interna dorata, come le altre copertine dell'app */
+  content:'';position:absolute;inset:9px;border:1px solid rgba(201,162,39,.24);border-radius:1px 5px 5px 1px;pointer-events:none;
+}
+.book-cover-emblem{color:var(--gold-2);filter:drop-shadow(0 2px 6px rgba(201,162,39,.35))}
+.book-cover-title{
+  font-family:'Alex Brush',cursive;font-weight:400;color:var(--gold-2);
+  font-size:clamp(1.6rem,5.2vw,2.1rem);line-height:1;text-align:center;padding:0 12px;
+}
+
+/* ── Sequenza: 1) breve istante a libro chiuso, 2) la copertina si apre e
+   il bagliore esplode, 3) tutto lo schermo sfuma rivelando l'app sotto. ── */
+.splash.opening-book .book-cover{
+  animation:splashBookOpen 1s cubic-bezier(.65,0,.35,1) .35s forwards;
+}
+.splash.opening-book .splash-glow{
+  animation:splashGlowBurst 1.5s cubic-bezier(.22,.61,.36,1) .75s forwards;
+}
+@keyframes splashBookOpen{
+  0%{transform:rotateY(0deg)}
+  100%{transform:rotateY(-155deg)}
+}
+@keyframes splashGlowBurst{
+  0%{transform:translate(-50%,-50%) scale(0);opacity:.95}
+  60%{opacity:1}
+  100%{transform:translate(-50%,-50%) scale(26);opacity:1}
+}
+.splash.opening{opacity:0}
 .splash.opening .splash-skip{opacity:0;pointer-events:none}
 
 @media(prefers-reduced-motion:reduce){
-  .splash.writing .splash-title,.splash.writing .splash-feather{animation:none}
-  .splash-title{clip-path:none}
-  .splash-panel{transition:opacity .4s ease}
-  .splash.opening .splash-panel-left,.splash.opening .splash-panel-right{transform:none;opacity:0}
+  .splash.opening-book .book-cover,.splash.opening-book .splash-glow{animation:none}
+  .splash.opening-book .splash-glow{opacity:1;transform:translate(-50%,-50%) scale(26)}
+  .splash{transition:opacity .5s ease}
 }
 /* ══════════════════════════════════════════════════════════════════
    NAV
@@ -1086,18 +1089,18 @@ body.splash-lock{overflow:hidden}
 
 <!-- ═══════════════ SPLASH SCREEN ═══════════════ -->
 <div class="splash" id="splashScreen" aria-hidden="true">
-  <div class="splash-panel splash-panel-left"></div>
-  <div class="splash-panel splash-panel-right"></div>
-  <div class="splash-content" id="splashContent">
-    <div class="splash-title-wrap">
-      <svg class="splash-feather" id="splashFeather" width="42" height="46" viewBox="0 0 24 26" fill="none" stroke="#c9a227" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+  <div class="splash-glow" id="splashGlow"></div>
+  <div class="splash-book">
+    <div class="book-pages"></div>
+    <div class="book-cover" id="splashBookCover">
+      <svg class="book-cover-emblem" width="34" height="37" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/>
         <line x1="16" y1="8" x2="2" y2="22"/>
         <line x1="17.5" y1="15" x2="9" y2="15"/>
         <line x1="14.5" y1="11.5" x2="7" y2="11.5"/>
         <path d="M2 22c-0.8 0.8 -1.3 1.7 -1.6 2.6"/>
       </svg>
-      <h1 class="splash-title" id="splashTitle">Biblioteca Aeterna</h1>
+      <div class="book-cover-title">Biblioteca Aeterna</div>
     </div>
   </div>
   <button class="splash-skip" id="splashSkip" type="button">Salta →</button>
@@ -1773,10 +1776,18 @@ body.splash-lock{overflow:hidden}
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   SPLASH SCREEN — piuma che scrive il titolo, poi apertura a tendina.
-   Compare una sola volta per sessione di navigazione (sessionStorage),
-   non ad ogni navigazione interna della SPA. Rispetta prefers-reduced-
-   motion e offre un link "Salta" per chi non vuole aspettare.
+   SPLASH SCREEN — un libro chiuso si apre sul dorso, un bagliore dorato
+   esplode da dentro e tutto sfuma nell'app sottostante. Compare una sola
+   volta per sessione di navigazione (sessionStorage), non ad ogni
+   navigazione interna della SPA. Rispetta prefers-reduced-motion e offre
+   un pulsante "Salta" per chi non vuole aspettare.
+
+   Sequenza (durata totale ~3s, escluso il tempo di attesa font):
+   1) 0.0s–0.35s: il libro chiuso resta fermo un istante (respiro iniziale)
+   2) 0.35s–1.35s: la copertina ruota sul dorso (splashBookOpen)
+   3) 0.75s–2.25s: il bagliore esplode da dentro (splashGlowBurst),
+      parte a metà dell'apertura per un buon aggancio visivo
+   4) ~2.3s: l'intera splash sfuma in dissolvenza, rivelando l'app
    ══════════════════════════════════════════════════════════════════ */
 (function initSplash(){
   const splash=document.getElementById('splashScreen');
@@ -1790,44 +1801,41 @@ body.splash-lock{overflow:hidden}
   const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   document.body.classList.add('splash-lock');
 
-  function openCurtain(){
-    if(splash.classList.contains('opening'))return; // evita doppio trigger (skip + fine scrittura)
+  function finish(){
+    if(splash.classList.contains('opening'))return; // evita doppio trigger (skip + fine sequenza)
     splash.classList.add('opening');
-    const leftPanel=splash.querySelector('.splash-panel-left');
-    const finish=()=>{
+    const rimuovi=()=>{
       splash.remove();
       document.body.classList.remove('splash-lock');
       sessionStorage.setItem('aeterna_splash_seen','1');
     };
-    if(reduceMotion){
-      setTimeout(finish,450);
-    }else{
-      leftPanel.addEventListener('transitionend',finish,{once:true});
-      setTimeout(finish,1600); // rete di sicurezza se transitionend non parte
-    }
+    splash.addEventListener('transitionend',rimuovi,{once:true});
+    setTimeout(rimuovi,900); // rete di sicurezza se transitionend non parte
   }
 
-  document.getElementById('splashSkip').addEventListener('click',openCurtain);
+  document.getElementById('splashSkip').addEventListener('click',finish);
 
   if(reduceMotion){
-    // niente scrittura animata: breve pausa e via, dissolvenza semplice
-    setTimeout(openCurtain,700);
+    // Niente rotazione 3D né bagliore animato: il libro appare già aperto
+    // (vedi CSS reduced-motion), breve pausa e via in dissolvenza semplice.
+    setTimeout(finish,700);
     return;
   }
 
-  // Aspetta che il font corsivo sia pronto per evitare un lampo col
-  // font di fallback proprio mentre il testo si sta "scrivendo".
-  const start=()=>requestAnimationFrame(()=>splash.classList.add('writing'));
+  // Aspetta che il font corsivo del titolo in copertina sia pronto, per
+  // evitare un lampo col font di fallback proprio mentre la scena parte.
+  const start=()=>requestAnimationFrame(()=>splash.classList.add('opening-book'));
   if(document.fonts&&document.fonts.ready){
     Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,600))]).then(start);
   }else{
     start();
   }
 
+  // Il bagliore (ultima animazione della sequenza, vedi CSS: parte a .75s
+  // e dura 1.5s) è il segnale più affidabile di "scena conclusa": alla sua
+  // fine si passa alla dissolvenza finale.
   splash.addEventListener('animationend',e=>{
-    if(e.animationName==='splashReveal'){
-      setTimeout(openCurtain,550); // piccola pausa dopo l'ultima lettera
-    }
+    if(e.animationName==='splashGlowBurst')finish();
   });
 })();
 /* ══════════════════════════════════════════════════════════════════
