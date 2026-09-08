@@ -3172,8 +3172,23 @@ async function salvaNotaScriptorium(id,dati){
 function eliminaNotaScriptorium(id){
   scriptoriumCache=scriptoriumCache.filter(n=>n.id!==id);
   renderScriptorium();renderPantheon();renderProfilo();
+  if(typeof renderReadingHero==='function')renderReadingHero(); // la barra sessioni del libro può cambiare
   if(currentUser){
-    apiFetch('/api/scriptorium/'+id,{method:'DELETE'}).catch(err=>console.error('eliminaNotaScriptorium',err));
+    apiFetch('/api/scriptorium/'+id,{method:'DELETE'})
+      .then(res=>{
+        // Il backend toglie Aurei/XP solo se la nota eliminata era una
+        // sessione di lettura (premio fisso, sempre concesso alla
+        // creazione — vedi elimina_nota_scriptorium): per gli altri tipi
+        // di nota "economia" non è presente nella risposta, quindi qui
+        // non cambia nulla.
+        if(res&&res.economia){
+          economiaCache=res.economia;
+          renderEconomia();
+          if(res.aurei_rimossi)mostraToastAurei(-res.aurei_rimossi,'Sessione eliminata');
+          renderPantheon(); // aggiorna la Vetrina, che dipende da economiaCache
+        }
+      })
+      .catch(err=>console.error('eliminaNotaScriptorium',err));
   }else{
     writeLocalScriptorium(scriptoriumCache);
   }
