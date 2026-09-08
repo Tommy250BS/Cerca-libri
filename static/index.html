@@ -2851,6 +2851,30 @@ function normalizeDoc(doc){
   };
 }
 
+/* Lingue ammesse senza filtro: italiano e inglese, le uniche in cui l'app
+   mostra i risultati per esteso. Le opere che Open Library etichetta
+   esplicitamente con un'altra lingua vengono scartate; quelle SENZA alcuna
+   etichetta di lingua restano invece (capita spesso con i classici più
+   antichi, mal taggati nel catalogo, e scartarle a priori toglierebbe
+   risultati validi). */
+const ALEX_LINGUE_AMMESSE=['ita','eng'];
+
+/* Quanto un documento sembra "davvero" pertinente alla query, e non solo
+   agganciato per un match generico su soggetto/testo integrale (com'era
+   prima: capitava che comparissero saggi critici O biografie SU un autore,
+   non opere scritte DA lui). Qui richiediamo che la query compaia nel
+   titolo o tra gli autori — un proxy semplice ma efficace, senza bisogno
+   di cambiare endpoint. */
+function alexRilevanza(doc,qLower){
+  const titolo=(doc.title||'').toLowerCase();
+  const autori=(doc.author_name||[]).map(a=>a.toLowerCase());
+  return{
+    inTitolo:titolo.includes(qLower),
+    inAutore:autori.some(a=>a.includes(qLower)),
+    autoreEsatto:autori.some(a=>a===qLower),
+  };
+}
+
 async function searchAlexandria(q){
   q=q.trim();
   if(!q)return;
@@ -2858,11 +2882,34 @@ async function searchAlexandria(q){
   const wrap=document.getElementById('alexResultsWrap');
   wrap.innerHTML=`<div class="alex-state">Ricerca in corso tra i grandi classici…</div>`;
   try{
-    const params=new URLSearchParams({q,limit:'24',fields:'key,title,author_name,first_publish_year,cover_i'});
+    // Chiediamo più candidati grezzi del solito (60 invece di 24): dopo il
+    // filtro di pertinenza/lingua qui sotto ne resteranno meno, ma partire
+    // da un lotto più ampio evita di ritrovarsi con troppo pochi risultati
+    // validi per query più di nicchia.
+    const params=new URLSearchParams({
+      q,limit:'60',
+      fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
+    });
     const r=await fetch(`https://openlibrary.org/search.json?${params}`,{signal:AbortSignal.timeout(9000)});
     if(!r.ok)throw new Error('http '+r.status);
     const d=await r.json();
-    alexResults=(d.docs||[]).map(normalizeDoc);
+    const qLower=q.toLowerCase();
+    const filtrati=(d.docs||[])
+      .filter(doc=>!Array.isArray(doc.language)||!doc.language.length||doc.language.some(l=>ALEX_LINGUE_AMMESSE.includes(l)))
+      .filter(doc=>{
+        const rl=alexRilevanza(doc,qLower);
+        return rl.inTitolo||rl.inAutore;
+      })
+      .sort((a,b)=>{
+        const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
+        // priorità: autore-query esatto > match nel titolo > opera più diffusa
+        // (numero di edizioni), come proxy di "è davvero un classico noto"
+        // e non un'edizione marginale o un'opera secondaria dello stesso nome.
+        if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
+        if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
+        return(b.edition_count||0)-(a.edition_count||0);
+      });
+    alexResults=filtrati.slice(0,24).map(normalizeDoc);
   }catch(err){
     console.error('searchAlexandria',err);
     wrap.innerHTML=`<div class="alex-state">⚠ Non sono riuscito a raggiungere il catalogo. Riprova tra poco.</div>`;
