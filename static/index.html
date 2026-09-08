@@ -2851,32 +2851,6 @@ function normalizeDoc(doc){
   };
 }
 
-/* Normalizza una voce di /authors/{key}/works.json — forma diversa da
-   quella di /search.json (qui "covers" è un array di ID, l'anno è dentro
-   "first_publish_date" come stringa libera, e l'autore non è ripetuto per
-   ogni opera perché è già noto: è quello risolto in cercaBibliografiaAutore). */
-function normalizeAuthorWork(entry,autoreNome){
-  const coverId=Array.isArray(entry.covers)?entry.covers.find(c=>c&&c>0):null;
-  const annoMatch=(entry.first_publish_date||'').match(/-?\d{3,4}/);
-  return{
-    id:'ol:'+(entry.key||entry.title),
-    t:entry.title||'Titolo sconosciuto',
-    a:autoreNome,
-    y:annoMatch?parseInt(annoMatch[0],10):null,
-    cover:coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:null,
-  };
-}
-
-/* Lingue ammesse senza filtro: italiano e inglese, le uniche in cui l'app
-   mostra i risultati per esteso. Le opere che Open Library etichetta
-   esplicitamente con un'altra lingua vengono scartate; quelle SENZA alcuna
-   etichetta di lingua restano invece (capita spesso con i classici più
-   antichi, mal taggati nel catalogo, e scartarle a priori toglierebbe
-   risultati validi). Si applica solo al ramo di ricerca generale qui sotto:
-   la bibliografia di un autore (works.json) non porta questo dato a livello
-   di opera, ma essendo già filtrata per autore reale non ne ha bisogno. */
-const ALEX_LINGUE_AMMESSE=['ita','eng'];
-
 /* Quanto un documento della ricerca generale sembra "davvero" pertinente
    alla query, e non solo agganciato per un match generico su
    soggetto/testo integrale (capitava che comparissero saggi critici o
@@ -2893,17 +2867,50 @@ function alexRilevanza(doc,qLower){
   };
 }
 
+/* Open Library cataloga spesso la STESSA opera più volte come record
+   separati — uno per l'edizione russa, uno per l'italiana, uno per
+   l'inglese, ecc. — invece di raggrupparli come edizioni di un'unica
+   opera (limite noto del catalogo, non un bug nostro). Qui scegliamo UNA
+   sola lingua per volta anziché ammetterne più di una insieme, altrimenti
+   la stessa opera resta comunque duplicata: prima si prova solo
+   l'italiano (l'app è in italiano), poi solo l'inglese come ripiego, e
+   solo se nessuna delle due esiste per quell'autore/query si passa alle
+   opere senza etichetta di lingua (classici antichi mal taggati) pur di
+   non restituire zero risultati. */
+function filtraPerLinguaPreferita(docs){
+  const italiani=docs.filter(d=>Array.isArray(d.language)&&d.language.includes('ita'));
+  if(italiani.length)return italiani;
+  const inglesi=docs.filter(d=>Array.isArray(d.language)&&d.language.includes('eng'));
+  if(inglesi.length)return inglesi;
+  const senzaLingua=docs.filter(d=>!Array.isArray(d.language)||!d.language.length);
+  return senzaLingua.length?senzaLingua:docs;
+}
+
+/* Rete di sicurezza contro i duplicati letterali (stesso titolo ricatalogato
+   più volte, anche nella stessa lingua): confronta i titoli normalizzati
+   (minuscolo, senza accenti/punteggiatura) e tiene solo la prima occorrenza
+   — di solito quella con più edizioni, se la lista è già ordinata così. */
+function alexDedupTitoli(docs){
+  const visti=new Set();
+  return docs.filter(d=>{
+    const norm=(d.title||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+    if(!norm||visti.has(norm))return!norm; // titoli vuoti (rari) non vengono scartati per questo
+    visti.add(norm);
+    return true;
+  });
+}
+
 /* Risolve la query in un autore reale del catalogo (se esiste) e ne
-   restituisce la bibliografia autentica via /authors/{key}/works.json —
-   l'unico modo per ottenere SOLO le opere scritte DA una persona, a
-   prescindere da come viene trascritto il suo nome nella query (es.
-   "Dostoevskij" in italiano risolve comunque all'autore giusto, perché qui
-   cerchiamo la PERSONA — usando la ricerca autori dedicata, che conosce le
-   varianti del nome — e non il testo letterale nei libri, che invece
-   dipende dalla lingua dell'edizione). Ritorna null se la query non
-   sembra un nome d'autore (es. è un titolo come "Hamlet").
-   Fonte verificata: developer center Open Library, endpoint
-   /search/authors.json e /authors/{key}/works.json. */
+   restituisce la bibliografia autentica via /search.json?author_key=... —
+   filtrata per ID autore esatto, non per testo, quindi a prescindere da
+   come viene trascritto il suo nome nella query (es. "Dostoevskij" in
+   italiano risolve comunque alla persona giusta, perché qui cerchiamo la
+   PERSONA — usando la ricerca autori dedicata, che conosce le varianti del
+   nome — e non il testo letterale nei libri). Usare l'author_key (non
+   works.json) ci dà anche i campi language/edition_count, necessari per
+   il filtro lingua e la scelta dell'edizione più diffusa. Ritorna null se
+   la query non sembra un nome d'autore (es. è un titolo come "Hamlet").
+   Fonte verificata: developer center Open Library. */
 async function cercaBibliografiaAutore(q){
   const rAutore=await fetch(
     `https://openlibrary.org/search/authors.json?${new URLSearchParams({q,limit:'1'})}`,
@@ -2915,14 +2922,17 @@ async function cercaBibliografiaAutore(q){
   if(!autore||!autore.key||!autore.work_count)return null;
 
   const rOpere=await fetch(
-    `https://openlibrary.org/authors/${autore.key}/works.json?limit=100`,
+    `https://openlibrary.org/search.json?${new URLSearchParams({
+      author_key:autore.key,limit:'100',
+      fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
+    })}`,
     {signal:AbortSignal.timeout(9000)}
   );
   if(!rOpere.ok)return null;
-  const dOpere=await rOpere.json();
-  return(dOpere.entries||[])
-    .filter(e=>e.title)
-    .map(e=>normalizeAuthorWork(e,autore.name));
+  const docs=(await rOpere.json()).docs||[];
+  const perLingua=filtraPerLinguaPreferita(docs.filter(d=>d.title));
+  const ordinati=perLingua.sort((a,b)=>(b.edition_count||0)-(a.edition_count||0));
+  return alexDedupTitoli(ordinati).map(normalizeDoc);
 }
 
 async function searchAlexandria(q){
@@ -2934,8 +2944,8 @@ async function searchAlexandria(q){
   try{
     // 1) Prima si prova a risolvere la query come nome di un autore reale:
     //    se ci riesce, la bibliografia restituita è già SOLO farina del suo
-    //    sacco — niente biografie, saggi critici o altri libri che lo
-    //    citano soltanto (il problema segnalato con "Dostoevskij").
+    //    sacco (niente biografie o saggi critici SU di lui), in una sola
+    //    lingua per opera, senza doppioni (vedi cercaBibliografiaAutore).
     let risultati=null;
     try{
       risultati=await cercaBibliografiaAutore(q);
@@ -2945,7 +2955,7 @@ async function searchAlexandria(q){
 
     // 2) Se non è un nome d'autore riconosciuto (es. un titolo come
     //    "Hamlet", o un argomento), si ricade sulla ricerca generale
-    //    full-text, filtrata per pertinenza e lingua come prima.
+    //    full-text, con lo stesso filtro di pertinenza/lingua/doppioni.
     if(!risultati||!risultati.length){
       const params=new URLSearchParams({
         q,limit:'60',
@@ -2955,19 +2965,18 @@ async function searchAlexandria(q){
       if(!r.ok)throw new Error('http '+r.status);
       const d=await r.json();
       const qLower=q.toLowerCase();
-      const filtrati=(d.docs||[])
-        .filter(doc=>!Array.isArray(doc.language)||!doc.language.length||doc.language.some(l=>ALEX_LINGUE_AMMESSE.includes(l)))
-        .filter(doc=>{
-          const rl=alexRilevanza(doc,qLower);
-          return rl.inTitolo||rl.inAutore;
-        })
-        .sort((a,b)=>{
-          const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
-          if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
-          if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
-          return(b.edition_count||0)-(a.edition_count||0);
-        });
-      risultati=filtrati.slice(0,24).map(normalizeDoc);
+      const pertinenti=(d.docs||[]).filter(doc=>{
+        const rl=alexRilevanza(doc,qLower);
+        return rl.inTitolo||rl.inAutore;
+      });
+      const perLingua=filtraPerLinguaPreferita(pertinenti);
+      const ordinati=perLingua.sort((a,b)=>{
+        const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
+        if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
+        if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
+        return(b.edition_count||0)-(a.edition_count||0);
+      });
+      risultati=alexDedupTitoli(ordinati).slice(0,24).map(normalizeDoc);
     }else{
       // Bibliografia d'autore: ordine cronologico (le opere senza data nota
       // vanno in fondo), un ordine naturale per sfogliare un'intera opera.
