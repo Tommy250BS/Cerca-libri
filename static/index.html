@@ -2881,20 +2881,39 @@ async function searchAlexandria(q){
   alexLastQuery=q;
   const wrap=document.getElementById('alexResultsWrap');
   wrap.innerHTML=`<div class="alex-state">Ricerca in corso tra i grandi classici…</div>`;
+  const fields='key,title,author_name,first_publish_year,cover_i,language,edition_count';
   try{
-    // Chiediamo più candidati grezzi del solito (60 invece di 24): dopo il
-    // filtro di pertinenza/lingua qui sotto ne resteranno meno, ma partire
-    // da un lotto più ampio evita di ritrovarsi con troppo pochi risultati
-    // validi per query più di nicchia.
-    const params=new URLSearchParams({
-      q,limit:'60',
-      fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
-    });
-    const r=await fetch(`https://openlibrary.org/search.json?${params}`,{signal:AbortSignal.timeout(9000)});
-    if(!r.ok)throw new Error('http '+r.status);
-    const d=await r.json();
+    // 1) Ricerca "fielded" sul solo campo autore (author=, non q=): trova le
+    //    opere scritte DA una persona con questo nome, ignorando i libri che
+    //    la citano solo nel titolo o nella descrizione (biografie, saggi
+    //    critici, ecc. — il problema segnalato con "Dostoevskij", dove
+    //    "Dostoevsky: A Writer's Life" comparirebbe anche filtrando solo
+    //    per titolo, dato che il nome è letteralmente nel titolo).
+    let docsGrezzi=[];
+    try{
+      const paramsAutore=new URLSearchParams({author:q,limit:'40',fields});
+      const rAutore=await fetch(`https://openlibrary.org/search.json?${paramsAutore}`,{signal:AbortSignal.timeout(9000)});
+      if(rAutore.ok)docsGrezzi=(await rAutore.json()).docs||[];
+    }catch{/* si prova comunque la ricerca generale qui sotto */}
+
+    // 2) Se la ricerca per autore non produce abbastanza risultati (query
+    //    probabilmente un titolo o un argomento, non un nome d'autore — es.
+    //    "Hamlet" non è un autore), si integra con la ricerca generale
+    //    full-text, filtrata per pertinenza come già facevamo.
+    if(docsGrezzi.length<3){
+      const paramsGenerale=new URLSearchParams({q,limit:'60',fields});
+      const rGenerale=await fetch(`https://openlibrary.org/search.json?${paramsGenerale}`,{signal:AbortSignal.timeout(9000)});
+      if(rGenerale.ok){
+        const nuovi=(await rGenerale.json()).docs||[];
+        const chiaviGiaViste=new Set(docsGrezzi.map(d=>d.key));
+        docsGrezzi=docsGrezzi.concat(nuovi.filter(d=>!chiaviGiaViste.has(d.key)));
+      }else if(!docsGrezzi.length){
+        throw new Error('http '+rGenerale.status);
+      }
+    }
+
     const qLower=q.toLowerCase();
-    const filtrati=(d.docs||[])
+    const filtrati=docsGrezzi
       .filter(doc=>!Array.isArray(doc.language)||!doc.language.length||doc.language.some(l=>ALEX_LINGUE_AMMESSE.includes(l)))
       .filter(doc=>{
         const rl=alexRilevanza(doc,qLower);
