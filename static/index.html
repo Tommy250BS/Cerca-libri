@@ -1035,12 +1035,32 @@ body.splash-lock{overflow:hidden}
 .field select:focus{border-color:var(--gold)}
 
 /* ══════════════════════════════════════════════════════════════════
+   CHI SIAMO / ABOUT — placeholder in attesa dei contenuti veri
+   ══════════════════════════════════════════════════════════════════ */
+.about-content{display:flex;flex-direction:column;gap:56px;max-width:640px}
+.about-block .eyebrow{margin-bottom:6px}
+.about-block h2{font-size:1.7rem;color:var(--ink);margin:6px 0 16px}
+.about-block p{color:var(--ink-2);line-height:1.75;font-size:1rem}
+.about-avatar{
+  width:96px;height:96px;border-radius:50%;object-fit:cover;
+  border:1px solid var(--line-strong);margin-bottom:22px;
+}
+.about-contacts{display:flex;flex-direction:column;gap:1px;margin-top:14px;background:var(--line);border:1px solid var(--line)}
+.about-contact-link{
+  display:flex;align-items:center;gap:12px;padding:16px 20px;background:var(--bg);
+  color:var(--ink-2);font-size:.92rem;transition:background .15s,color .15s;
+}
+.about-contact-link:hover{background:var(--bg-2);color:var(--gold-2)}
+
+/* ══════════════════════════════════════════════════════════════════
    FOOTER
    ══════════════════════════════════════════════════════════════════ */
 .site-footer{border-top:1px solid var(--line);padding:34px 0}
 .footer-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
 .footer-brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-size:1.05rem}
 .footer-mid{color:var(--ink-3);font-size:.82rem;text-align:center}
+.footer-about-link{color:var(--ink-3);font-size:.8rem;transition:color .15s}
+.footer-about-link:hover{color:var(--gold-2)}
 .footer-year{color:var(--ink-3);font-size:.8rem;letter-spacing:.14em}
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1135,6 +1155,7 @@ body.splash-lock{overflow:hidden}
     <a href="#" data-nav="agora">Agorà</a>
     <a href="#" data-nav="pantheon">Pantheon</a>
     <a href="#" data-nav="profilo">Chi sono?</a>
+    <a href="#" data-nav="about">Chi siamo</a>
   </nav>
 </header>
 
@@ -1323,23 +1344,23 @@ body.splash-lock{overflow:hidden}
       <div class="wrap">
         <p class="eyebrow">La grande biblioteca</p>
         <h1>Alexandria</h1>
-        <p>Milioni di opere ti attendono. Cerca per titolo, autore o argomento nel catalogo universale.</p>
+        <p>Milioni di opere ti attendono. Cerca per titolo nel catalogo universale.</p>
         <form class="search-bar" id="alexForm">
           <input type="search" id="alexInput" placeholder="Cerca tra i grandi classici…" autocomplete="off">
           <button type="submit">Cerca</button>
         </form>
         <div class="search-chips">
-          <button class="chip" data-q="Dostoevskij">Dostoevskij</button>
-          <button class="chip" data-q="Jane Austen">Jane Austen</button>
-          <button class="chip" data-q="Omero">Omero</button>
-          <button class="chip" data-q="Kafka">Kafka</button>
-          <button class="chip" data-q="Tolstoj">Tolstoj</button>
-          <button class="chip" data-q="Oscar Wilde">Oscar Wilde</button>
+          <button class="chip" data-q="Delitto e castigo">Delitto e castigo</button>
+          <button class="chip" data-q="Orgoglio e pregiudizio">Orgoglio e pregiudizio</button>
+          <button class="chip" data-q="Odissea">Odissea</button>
+          <button class="chip" data-q="Il processo">Il processo</button>
+          <button class="chip" data-q="Anna Karenina">Anna Karenina</button>
+          <button class="chip" data-q="Il ritratto di Dorian Gray">Il ritratto di Dorian Gray</button>
         </div>
       </div>
     </div>
     <div class="wrap section" id="alexResultsWrap">
-      <div class="alex-state">Digita un titolo, un autore o tocca un suggerimento per iniziare a esplorare.</div>
+      <div class="alex-state">Digita un titolo o tocca un suggerimento per iniziare a esplorare.</div>
     </div>
   </section>
 
@@ -1517,6 +1538,42 @@ body.splash-lock{overflow:hidden}
     </div>
   </section>
 
+  <!-- ═══════════════ CHI SIAMO / ABOUT ═══════════════
+       Pagina "di rito" per i siti: chi c'è dietro il progetto e come
+       contattarlo. Solo scheletro/placeholder per ora — i contenuti veri
+       (bio, foto, link) vanno inseriti al posto dei segnaposto qui sotto. -->
+  <section class="page" id="page-about">
+    <div class="page-header">
+      <div class="wrap">
+        <p class="eyebrow">Dietro il progetto</p>
+        <h1>Chi siamo</h1>
+        <p>La storia e le persone dietro Biblioteca Aeterna, e come metterti in contatto.</p>
+      </div>
+    </div>
+    <div class="wrap section">
+      <div class="about-content">
+        <div class="about-block">
+          <!-- TODO: sostituire con una foto/avatar vero -->
+          <!-- <img class="about-avatar" src="URL_FOTO" alt="Foto di NOME COGNOME"> -->
+          <p class="eyebrow">La persona</p>
+          <h2>Nome Cognome</h2>
+          <!-- TODO: sostituire con la vera presentazione -->
+          <p>Qui andrà la presentazione di chi ha creato Biblioteca Aeterna: perché è nato questo progetto, cosa lo appassiona dei grandi classici e qualche parola sul percorso che lo ha portato a costruirlo.</p>
+        </div>
+        <div class="about-block">
+          <p class="eyebrow">Contatti</p>
+          <!-- TODO: sostituire i link/indirizzi qui sotto con quelli veri -->
+          <div class="about-contacts">
+            <a href="mailto:nome@esempio.com" class="about-contact-link">✉️ nome@esempio.com</a>
+            <a href="#" class="about-contact-link">🔗 Sito personale</a>
+            <a href="#" class="about-contact-link">🐙 GitHub</a>
+            <a href="#" class="about-contact-link">🐦 X / Twitter</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ═══════════════ SEZIONI ANCORA DA COSTRUIRE ═══════════════ -->
   <section class="page" id="page-stub">
     <div class="wrap stub">
@@ -1544,6 +1601,7 @@ body.splash-lock{overflow:hidden}
       Biblioteca Aeterna
     </div>
     <div class="footer-mid">Un santuario per gli amanti dei Grandi Classici · Catalogo da Open Library</div>
+    <a href="#" class="footer-about-link" data-nav="about">Chi siamo</a>
     <div class="footer-year">MMXXVI</div>
   </div>
 </footer>
@@ -2058,7 +2116,7 @@ window.addEventListener('resize',()=>{if(window.innerWidth>940)closeMobileMenu()
    ══════════════════════════════════════════════════════════════════ */
 const STUBS={};
 /* Pagine vere (non stub): id di navigazione → id della sezione nel DOM. */
-const REAL_PAGES={home:'page-home',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',tabellarium:'page-tabellarium',scriptorium:'page-scriptorium',agora:'page-agora'};
+const REAL_PAGES={home:'page-home',pantheon:'page-pantheon',alexandria:'page-alexandria',profilo:'page-profilo',tabellarium:'page-tabellarium',scriptorium:'page-scriptorium',agora:'page-agora',about:'page-about'};
 function navigate(id){
   closeMobileMenu();
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2854,16 +2912,13 @@ function normalizeDoc(doc){
 /* Quanto un documento della ricerca generale sembra "davvero" pertinente
    alla query, e non solo agganciato per un match generico su
    soggetto/testo integrale (capitava che comparissero saggi critici o
-   biografie SU un autore, non opere scritte DA lui). Qui richiediamo che
-   la query compaia nel titolo o tra gli autori — un proxy semplice ma
-   efficace per la ricerca generale (usata solo come ripiego, vedi sotto). */
+   biografie SU un autore, non opere scritte DA lui). La ricerca è solo per
+   titolo — niente più match sull'autore — quindi qui richiediamo che la
+   query compaia nel titolo dell'opera. */
 function alexRilevanza(doc,qLower){
   const titolo=(doc.title||'').toLowerCase();
-  const autori=(doc.author_name||[]).map(a=>a.toLowerCase());
   return{
     inTitolo:titolo.includes(qLower),
-    inAutore:autori.some(a=>a.includes(qLower)),
-    autoreEsatto:autori.some(a=>a===qLower),
   };
 }
 
@@ -2915,17 +2970,9 @@ async function searchAlexandria(q){
     if(!r.ok)throw new Error('http '+r.status);
     const d=await r.json();
     const qLower=q.toLowerCase();
-    const pertinenti=(d.docs||[]).filter(doc=>{
-      const rl=alexRilevanza(doc,qLower);
-      return rl.inTitolo||rl.inAutore;
-    });
+    const pertinenti=(d.docs||[]).filter(doc=>alexRilevanza(doc,qLower).inTitolo);
     const perLingua=filtraPerLinguaPreferita(pertinenti);
-    const ordinati=perLingua.sort((a,b)=>{
-      const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
-      if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
-      if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
-      return(b.edition_count||0)-(a.edition_count||0);
-    });
+    const ordinati=perLingua.sort((a,b)=>(b.edition_count||0)-(a.edition_count||0));
     alexResults=alexDedupTitoli(ordinati).slice(0,24).map(normalizeDoc);
   }catch(err){
     console.error('searchAlexandria',err);
