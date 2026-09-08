@@ -2851,20 +2851,38 @@ function normalizeDoc(doc){
   };
 }
 
+/* Normalizza una voce di /authors/{key}/works.json — forma diversa da
+   quella di /search.json (qui "covers" è un array di ID, l'anno è dentro
+   "first_publish_date" come stringa libera, e l'autore non è ripetuto per
+   ogni opera perché è già noto: è quello risolto in cercaBibliografiaAutore). */
+function normalizeAuthorWork(entry,autoreNome){
+  const coverId=Array.isArray(entry.covers)?entry.covers.find(c=>c&&c>0):null;
+  const annoMatch=(entry.first_publish_date||'').match(/-?\d{3,4}/);
+  return{
+    id:'ol:'+(entry.key||entry.title),
+    t:entry.title||'Titolo sconosciuto',
+    a:autoreNome,
+    y:annoMatch?parseInt(annoMatch[0],10):null,
+    cover:coverId?`https://covers.openlibrary.org/b/id/${coverId}-M.jpg`:null,
+  };
+}
+
 /* Lingue ammesse senza filtro: italiano e inglese, le uniche in cui l'app
    mostra i risultati per esteso. Le opere che Open Library etichetta
    esplicitamente con un'altra lingua vengono scartate; quelle SENZA alcuna
    etichetta di lingua restano invece (capita spesso con i classici più
    antichi, mal taggati nel catalogo, e scartarle a priori toglierebbe
-   risultati validi). */
+   risultati validi). Si applica solo al ramo di ricerca generale qui sotto:
+   la bibliografia di un autore (works.json) non porta questo dato a livello
+   di opera, ma essendo già filtrata per autore reale non ne ha bisogno. */
 const ALEX_LINGUE_AMMESSE=['ita','eng'];
 
-/* Quanto un documento sembra "davvero" pertinente alla query, e non solo
-   agganciato per un match generico su soggetto/testo integrale (com'era
-   prima: capitava che comparissero saggi critici O biografie SU un autore,
-   non opere scritte DA lui). Qui richiediamo che la query compaia nel
-   titolo o tra gli autori — un proxy semplice ma efficace, senza bisogno
-   di cambiare endpoint. */
+/* Quanto un documento della ricerca generale sembra "davvero" pertinente
+   alla query, e non solo agganciato per un match generico su
+   soggetto/testo integrale (capitava che comparissero saggi critici o
+   biografie SU un autore, non opere scritte DA lui). Qui richiediamo che
+   la query compaia nel titolo o tra gli autori — un proxy semplice ma
+   efficace per la ricerca generale (usata solo come ripiego, vedi sotto). */
 function alexRilevanza(doc,qLower){
   const titolo=(doc.title||'').toLowerCase();
   const autori=(doc.author_name||[]).map(a=>a.toLowerCase());
@@ -2875,60 +2893,89 @@ function alexRilevanza(doc,qLower){
   };
 }
 
+/* Risolve la query in un autore reale del catalogo (se esiste) e ne
+   restituisce la bibliografia autentica via /authors/{key}/works.json —
+   l'unico modo per ottenere SOLO le opere scritte DA una persona, a
+   prescindere da come viene trascritto il suo nome nella query (es.
+   "Dostoevskij" in italiano risolve comunque all'autore giusto, perché qui
+   cerchiamo la PERSONA — usando la ricerca autori dedicata, che conosce le
+   varianti del nome — e non il testo letterale nei libri, che invece
+   dipende dalla lingua dell'edizione). Ritorna null se la query non
+   sembra un nome d'autore (es. è un titolo come "Hamlet").
+   Fonte verificata: developer center Open Library, endpoint
+   /search/authors.json e /authors/{key}/works.json. */
+async function cercaBibliografiaAutore(q){
+  const rAutore=await fetch(
+    `https://openlibrary.org/search/authors.json?${new URLSearchParams({q,limit:'1'})}`,
+    {signal:AbortSignal.timeout(9000)}
+  );
+  if(!rAutore.ok)return null;
+  const dAutore=await rAutore.json();
+  const autore=(dAutore.docs||[])[0];
+  if(!autore||!autore.key||!autore.work_count)return null;
+
+  const rOpere=await fetch(
+    `https://openlibrary.org/authors/${autore.key}/works.json?limit=100`,
+    {signal:AbortSignal.timeout(9000)}
+  );
+  if(!rOpere.ok)return null;
+  const dOpere=await rOpere.json();
+  return(dOpere.entries||[])
+    .filter(e=>e.title)
+    .map(e=>normalizeAuthorWork(e,autore.name));
+}
+
 async function searchAlexandria(q){
   q=q.trim();
   if(!q)return;
   alexLastQuery=q;
   const wrap=document.getElementById('alexResultsWrap');
   wrap.innerHTML=`<div class="alex-state">Ricerca in corso tra i grandi classici…</div>`;
-  const fields='key,title,author_name,first_publish_year,cover_i,language,edition_count';
   try{
-    // 1) Ricerca "fielded" sul solo campo autore (author=, non q=): trova le
-    //    opere scritte DA una persona con questo nome, ignorando i libri che
-    //    la citano solo nel titolo o nella descrizione (biografie, saggi
-    //    critici, ecc. — il problema segnalato con "Dostoevskij", dove
-    //    "Dostoevsky: A Writer's Life" comparirebbe anche filtrando solo
-    //    per titolo, dato che il nome è letteralmente nel titolo).
-    let docsGrezzi=[];
+    // 1) Prima si prova a risolvere la query come nome di un autore reale:
+    //    se ci riesce, la bibliografia restituita è già SOLO farina del suo
+    //    sacco — niente biografie, saggi critici o altri libri che lo
+    //    citano soltanto (il problema segnalato con "Dostoevskij").
+    let risultati=null;
     try{
-      const paramsAutore=new URLSearchParams({author:q,limit:'40',fields});
-      const rAutore=await fetch(`https://openlibrary.org/search.json?${paramsAutore}`,{signal:AbortSignal.timeout(9000)});
-      if(rAutore.ok)docsGrezzi=(await rAutore.json()).docs||[];
-    }catch{/* si prova comunque la ricerca generale qui sotto */}
-
-    // 2) Se la ricerca per autore non produce abbastanza risultati (query
-    //    probabilmente un titolo o un argomento, non un nome d'autore — es.
-    //    "Hamlet" non è un autore), si integra con la ricerca generale
-    //    full-text, filtrata per pertinenza come già facevamo.
-    if(docsGrezzi.length<3){
-      const paramsGenerale=new URLSearchParams({q,limit:'60',fields});
-      const rGenerale=await fetch(`https://openlibrary.org/search.json?${paramsGenerale}`,{signal:AbortSignal.timeout(9000)});
-      if(rGenerale.ok){
-        const nuovi=(await rGenerale.json()).docs||[];
-        const chiaviGiaViste=new Set(docsGrezzi.map(d=>d.key));
-        docsGrezzi=docsGrezzi.concat(nuovi.filter(d=>!chiaviGiaViste.has(d.key)));
-      }else if(!docsGrezzi.length){
-        throw new Error('http '+rGenerale.status);
-      }
+      risultati=await cercaBibliografiaAutore(q);
+    }catch(err){
+      console.error('cercaBibliografiaAutore',err); // si prova comunque la ricerca generale qui sotto
     }
 
-    const qLower=q.toLowerCase();
-    const filtrati=docsGrezzi
-      .filter(doc=>!Array.isArray(doc.language)||!doc.language.length||doc.language.some(l=>ALEX_LINGUE_AMMESSE.includes(l)))
-      .filter(doc=>{
-        const rl=alexRilevanza(doc,qLower);
-        return rl.inTitolo||rl.inAutore;
-      })
-      .sort((a,b)=>{
-        const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
-        // priorità: autore-query esatto > match nel titolo > opera più diffusa
-        // (numero di edizioni), come proxy di "è davvero un classico noto"
-        // e non un'edizione marginale o un'opera secondaria dello stesso nome.
-        if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
-        if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
-        return(b.edition_count||0)-(a.edition_count||0);
+    // 2) Se non è un nome d'autore riconosciuto (es. un titolo come
+    //    "Hamlet", o un argomento), si ricade sulla ricerca generale
+    //    full-text, filtrata per pertinenza e lingua come prima.
+    if(!risultati||!risultati.length){
+      const params=new URLSearchParams({
+        q,limit:'60',
+        fields:'key,title,author_name,first_publish_year,cover_i,language,edition_count'
       });
-    alexResults=filtrati.slice(0,24).map(normalizeDoc);
+      const r=await fetch(`https://openlibrary.org/search.json?${params}`,{signal:AbortSignal.timeout(9000)});
+      if(!r.ok)throw new Error('http '+r.status);
+      const d=await r.json();
+      const qLower=q.toLowerCase();
+      const filtrati=(d.docs||[])
+        .filter(doc=>!Array.isArray(doc.language)||!doc.language.length||doc.language.some(l=>ALEX_LINGUE_AMMESSE.includes(l)))
+        .filter(doc=>{
+          const rl=alexRilevanza(doc,qLower);
+          return rl.inTitolo||rl.inAutore;
+        })
+        .sort((a,b)=>{
+          const ra=alexRilevanza(a,qLower),rb=alexRilevanza(b,qLower);
+          if(ra.autoreEsatto!==rb.autoreEsatto)return ra.autoreEsatto?-1:1;
+          if(ra.inTitolo!==rb.inTitolo)return ra.inTitolo?-1:1;
+          return(b.edition_count||0)-(a.edition_count||0);
+        });
+      risultati=filtrati.slice(0,24).map(normalizeDoc);
+    }else{
+      // Bibliografia d'autore: ordine cronologico (le opere senza data nota
+      // vanno in fondo), un ordine naturale per sfogliare un'intera opera.
+      risultati=risultati
+        .sort((a,b)=>(a.y??Infinity)-(b.y??Infinity)||a.t.localeCompare(b.t))
+        .slice(0,60);
+    }
+    alexResults=risultati;
   }catch(err){
     console.error('searchAlexandria',err);
     wrap.innerHTML=`<div class="alex-state">⚠ Non sono riuscito a raggiungere il catalogo. Riprova tra poco.</div>`;
